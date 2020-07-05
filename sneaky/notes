@@ -144,7 +144,7 @@ Parameter: name (POST)
 we can also use burp directly for sql injection
 1. proxy the post
 2. send that to intruder
-3. setup position, Sniper attack,  we can Clear, and highlight the field then Add
+3. setup position, Sniper attack,  we can Clear, and highlight the field then Add , something like name=$123$ or name=123$a$
 4. setup the payload, payload option -> Load /usr/share/wordlist/wfuzz/injection/SQL.txt
 5. start the attack, find that 200 one
 6. ' or 1=1 or ''='
