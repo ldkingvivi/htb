@@ -1,0 +1,17 @@
+
+
+
+sudo -l
+
+ps -ef 
+ps -aux
+
+find / -perm -4000 2>/dev/null
+
+something take a input value that we can submit with ; ls -a or "; bin we create"
+
+something calling something that doesn't have a a absolute path, so we can re-create that file and make sure it's first in our PATH
+
+
+
+

