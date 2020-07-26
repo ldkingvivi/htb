@@ -1,0 +1,92 @@
+kali@kali:~$ nmap -sC -sV 10.10.10.29
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-26 14:47 EDT
+Nmap scan report for 10.10.10.29
+Host is up (0.15s latency).
+Not shown: 997 closed ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 6.6.1p1 Ubuntu 2ubuntu2.8 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   1024 08:ee:d0:30:d5:45:e4:59:db:4d:54:a8:dc:5c:ef:15 (DSA)
+|   2048 b8:e0:15:48:2d:0d:f0:f1:73:33:b7:81:64:08:4a:91 (RSA)
+|   256 a0:4c:94:d1:7b:6e:a8:fd:07:fe:11:eb:88:d5:16:65 (ECDSA)
+|_  256 2d:79:44:30:c8:bb:5e:8f:07:cf:5b:72:ef:a1:6d:67 (ED25519)
+53/tcp open  domain  ISC BIND 9.9.5-3ubuntu0.14 (Ubuntu Linux)
+| dns-nsid: 
+|_  bind.version: 9.9.5-3ubuntu0.14-Ubuntu
+80/tcp open  http    Apache httpd 2.4.7 ((Ubuntu))
+|_http-server-header: Apache/2.4.7 (Ubuntu)
+|_http-title: Apache2 Ubuntu Default Page: It works
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+
+kali@kali:~$ sudo nmap -sU -sT -T4 --max-retries 0 10.10.10.29
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-26 14:47 EDT
+Warning: 10.10.10.29 giving up on port because retransmission cap hit (0).
+Warning: 10.10.10.29 giving up on port because retransmission cap hit (0).
+Nmap scan report for 10.10.10.29
+Host is up (0.15s latency).
+Not shown: 989 open|filtered ports, 740 closed ports, 267 filtered ports
+PORT   STATE SERVICE
+22/tcp open  ssh
+53/tcp open  domain
+80/tcp open  http
+53/udp open  domain
+
+
+/login.php (Status: 200)
+/support.php (Status: 302)
+/uploads (Status: 301)
+/index.php (Status: 302)
+/assets (Status: 301)
+/logout.php (Status: 302)
+/inc (Status: 301)
+/server-status (Status: 403)
+/balance-transfer (Status: 301)
+
+looks like we need to login to access the /uploads
+
+there's a /balance-transfer which has a lot of encrypted stuff
+
+sort by the size, we can see a encrypted failed account
+
+
+Full Name: Christos Christopoulos
+Email: chris@bank.htb
+Password: !##HTBB4nkP4ssw0rd!##
+
+
+kali@kali:~$ dig @10.10.10.29 +nocmd bank.htb ANY +multiline +noall +answer
+bank.htb.               604800 IN SOA bank.htb. chris.bank.htb. (
+                                2          ; serial
+                                604800     ; refresh (1 week)
+                                86400      ; retry (1 day)
+                                2419200    ; expire (4 weeks)
+                                604800     ; minimum (1 week)
+                                )
+bank.htb.               604800 IN NS ns.bank.htb.
+bank.htb.               604800 IN A 10.10.10.29
+
+
+interesting inline with chris.bank.htb
+
+
+once login we can uplod files to it.
+
+tried with png file as php inside, but the server didn't run that as php file, it runs it as png
+
+try change the header to image/png but with filename shell.php doesn't work
+
+finally the source code shows
+<!-- [DEBUG] I added the file extension .htb to execute as php for debugging purposes only [DEBUG] -->
+
+
+now we just need to upload the shell.htb
+
+own user
+
+www-data@bank:/var/www/bank$ find / -perm -4000 2>/dev/null
+/var/htb/bin/emergency
+
+root is given
+
+
