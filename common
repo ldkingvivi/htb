@@ -1,5 +1,28 @@
 
+gobuster
 
+1. -f add "/"
+2. -x php, txt 
+
+
+
+
+
+
+====================
+tty
+
+python -c "import pty;pty.spawn('/bin/bash')"
+or
+/usr/bin/script -qc /bin/bash /dev/null
+
+stty raw -echo
+fg
+
+
+
+=====================
+try to get root
 
 sudo -l
 
